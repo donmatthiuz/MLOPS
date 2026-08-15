@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "credit-pipeline"
+version = "0.1.0"
+description = "Pipeline de sklearn (limpieza, transformacion, modelo) para calificacion de limite de credito"
+requires-python = ">=3.9"
+dependencies = [
+    "scikit-learn>=1.4",
+    "pandas>=2.0",
+    "numpy>=1.24",
+]
+
+[project.scripts]
+run-pipeline = "credit_pipeline.run:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
