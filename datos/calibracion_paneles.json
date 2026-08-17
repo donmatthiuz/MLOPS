@@ -1,0 +1,25 @@
+{
+  "_descripcion": "Calibración manual del piloto (5 fotos, agosto 2026) del dispensor Shell fotografiado. Cada perfil define, por tipo de combustible, la caja (x0,y0,x1,y1) como fracción del ancho/alto de imagen donde se ubica el panel de precio. Se identificaron dos encuadres distintos entre las 5 fotos (una toma amplia y cuatro tomas más cercanas). Ver src/gasolina_gt/extraction/calibration.py.",
+  "perfiles": {
+    "wide": {
+      "diesel":  [0.387, 0.565, 0.483, 0.774],
+      "regular": [0.463, 0.551, 0.559, 0.759],
+      "super":   [0.546, 0.546, 0.648, 0.756],
+      "vpower":  [0.638, 0.533, 0.747, 0.744]
+    },
+    "close": {
+      "diesel":  null,
+      "regular": [0.420, 0.616, 0.529, 0.824],
+      "super":   [0.529, 0.611, 0.638, 0.822],
+      "vpower":  [0.638, 0.598, 0.747, 0.809]
+    }
+  },
+  "asignacion_por_archivo": {
+    "IMG_8325.HEIC": "wide",
+    "IMG_8271.HEIC": "close",
+    "IMG_8286.HEIC": "close",
+    "IMG_8304.HEIC": "close",
+    "IMG_8322.HEIC": "close"
+  },
+  "perfil_por_defecto_para_imagenes_nuevas": "wide"
+}

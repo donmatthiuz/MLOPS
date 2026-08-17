@@ -1,0 +1,15 @@
+{
+  "_descripcion": "Fixture offline para pruebas deterministas sin red. Valores tomados de una consulta real a globalpetrolprices.com/Guatemala (fuente citada: Ministerio de Energía y Minas) el 2026-08-15, usados como respaldo cuando el scraping en vivo no está disponible.",
+  "gasolina": {
+    "precio_gtq_por_litro": 10.67,
+    "precio_gtq_por_galon": 40.38,
+    "variacion_mensual_pct": 0.66,
+    "fecha_consulta_real": "2026-08-15"
+  },
+  "diesel": {
+    "precio_gtq_por_litro": 11.43,
+    "precio_gtq_por_galon": 43.27,
+    "variacion_mensual_pct": null,
+    "fecha_consulta_real": "2026-08-15"
+  }
+}

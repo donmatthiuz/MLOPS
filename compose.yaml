@@ -1,0 +1,58 @@
+name: gasolina-gt
+
+services:
+  # Construye Bronze/Silver/Gold y entrena los modelos. Se ejecuta una vez
+  # antes de iniciar la API; sus artefactos quedan en volúmenes persistentes.
+  bootstrap:
+    build:
+      context: .
+      target: production
+    command: >
+      sh -c "gasolina-gt build-data && gasolina-gt train --combustible regular"
+    volumes:
+      - processed_data:/app/datos_procesados
+      - models:/app/models
+      - reports:/app/reports
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: production
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    command: uvicorn gasolina_gt.serving.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - processed_data:/app/datos_procesados
+      - models:/app/models
+      - reports:/app/reports
+    restart: unless-stopped
+
+  # Ejecutar bajo demanda: docker compose run --rm tests
+  tests:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    command: pytest -q
+
+  # Ejecutar bajo demanda, por ejemplo:
+  # docker compose run --rm cli recommend --combustible regular --hora 18
+  cli:
+    build:
+      context: .
+      target: production
+    profiles: ["tools"]
+    entrypoint: ["gasolina-gt"]
+    volumes:
+      - processed_data:/app/datos_procesados
+      - models:/app/models
+      - reports:/app/reports
+
+volumes:
+  processed_data:
+  models:
+  reports:

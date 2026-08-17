@@ -1,0 +1,73 @@
+# =============================================================================
+# Configuración central del proyecto — Precios de Gasolina Guatemala
+# Fase CRISP-DM: Modelado y Evaluación (con soporte de Preparación de datos)
+# =============================================================================
+
+paths:
+  datos_raw: "datos"
+  bronze: "datos_procesados/bronze"      # extracción cruda por imagen (JSON)
+  silver: "datos_procesados/silver"      # tabla limpia precio x fecha x combustible
+  gold: "datos_procesados/gold"          # dataset con features, listo para modelar
+  augmented: "datos_procesados/augmented"
+  models: "models"
+  reports: "reports"
+
+extraccion:
+  # Orden físico fijo de los paneles del dispensor Shell, izquierda -> derecha
+  # (validado visualmente contra las 5 fotos piloto). Ver S6 en business-understanding.
+  orden_combustibles: ["diesel", "regular", "super", "vpower"]
+  rango_precio_valido_gtq: [10.0, 80.0]   # cota de plausibilidad (R7 - rechazar precios ilógicos)
+  confianza_minima: 0.55
+
+calibracion_camara:
+  # Dos perfiles de encuadre observados en el set piloto (5 fotos, agosto 2026).
+  # Fracciones (x0, y0, x1, y1) relativas al tamaño de imagen (ancho, alto).
+  perfil_por_defecto: "wide"
+
+negocio:
+  combustible_principal: "regular"    # S1: se predice inicialmente Regular
+  horizontes_semanas: [1, 2, 4]       # S2
+  frecuencia: "semanal"               # D2: decisión tomada (datos escasos -> semanal)
+  moneda: "GTQ"
+  unidad: "galon"
+
+modelado:
+  test_size_semanas: 6          # ventana de test (validación temporal estricta, sin leakage)
+  semilla: 42
+  baseline: "persistencia"      # último precio conocido
+  umbral_tendencia_gtq: 0.15    # cambio mínimo para considerar alza/baja vs estable
+  hiperparametros_xgboost:
+    n_estimators: [100, 200, 300, 400]
+    max_depth: [2, 3, 4, 5]
+    learning_rate: [0.02, 0.05, 0.1, 0.2]
+    subsample: [0.7, 0.85, 1.0]
+    colsample_bytree: [0.7, 0.85, 1.0]
+    reg_lambda: [0.5, 1.0, 2.0]
+  n_iter_busqueda: 25
+  cv_splits: 3
+
+evaluacion:
+  # Criterios de éxito técnico T1-T5 del Business Understanding
+  umbral_mae_gtq: 1.00          # T3: referencia "< Q1.00/galón"
+  umbral_mejora_vs_baseline_pct: 0.0   # T2/C2: debe superar al baseline (MAE menor)
+  umbral_f1_tendencia: 0.55     # T5: debe superar una predicción simple de tendencia
+
+recomendacion:
+  margen_decision_gtq: 0.10     # diferencia mínima para no quedar en "neutral"
+  horas_pico_ahorro: [6, 7, 8, 17, 18, 19]  # horas de mayor consumo/tráfico (contexto, no precio)
+
+scraping:
+  fuente: "globalpetrolprices"
+  urls:
+    gasolina: "https://es.globalpetrolprices.com/Guatemala/gasoline_prices/"
+    diesel: "https://es.globalpetrolprices.com/Guatemala/diesel_prices/"
+  timeout_segundos: 15
+  fixture_offline: "tests/fixtures/precio_referencia_offline.json"
+
+augmentation:
+  imagenes_por_original: 6
+  rotacion_max_grados: 4
+  brillo_rango: [0.75, 1.25]
+  contraste_rango: [0.8, 1.2]
+  ruido_gaussiano_sigma: 4
+  perspectiva_jitter_px: 6
