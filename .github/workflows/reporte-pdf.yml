@@ -1,0 +1,52 @@
+name: Generar PDF de Reporte
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  convertir:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Clonar repo
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Verificar si existe Reporte.ipynb
+      - name: Verificar existencia de Reporte.ipynb
+        id: check_reporte
+        run: |
+          if [ -f "Reporte.ipynb" ]; then
+            echo "existe=true" >> $GITHUB_OUTPUT
+          else
+            echo "existe=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No existe Reporte.ipynb, se omite el proceso"
+          fi
+
+      # 3. Instalar dependencias (solo si existe)
+      - name: Instalar dependencias
+        if: steps.check_reporte.outputs.existe == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-plain-generic
+          pip install nbconvert
+
+      # 4. Convertir a PDF (solo si existe)
+      - name: Convertir a PDF
+        if: steps.check_reporte.outputs.existe == 'true'
+        run: |
+          echo "📄 Convirtiendo Reporte.ipynb a PDF..."
+          jupyter nbconvert --to pdf Reporte.ipynb
+
+      # 5. Commit y push (solo si existe)
+      - name: Commit y push
+        if: steps.check_reporte.outputs.existe == 'true'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add Reporte.pdf || true
+          git commit -m "Agregar Reporte.pdf generado automáticamente" || echo "Sin cambios"
+          git push https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD
