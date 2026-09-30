@@ -1,52 +1,95 @@
-name: Generar PDF de Reporte
+name: Generar PDF del reporte Markdown
 
 on:
   push:
+    paths-ignore:
+      - "**/*.pdf"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   convertir:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Clonar repo
+      # 1. Clonar el repositorio.
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Verificar si existe Reporte.ipynb
-      - name: Verificar existencia de Reporte.ipynb
-        id: check_reporte
+      # 2. Buscar el único Markdown entregable. README.md no se considera reporte.
+      - name: Buscar archivo Markdown
+        id: reporte
+        shell: bash
         run: |
-          if [ -f "Reporte.ipynb" ]; then
-            echo "existe=true" >> $GITHUB_OUTPUT
-          else
-            echo "existe=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No existe Reporte.ipynb, se omite el proceso"
+          mapfile -d '' archivos < <(
+            find . -type f -name '*.md' \
+              ! -name 'README.md' \
+              ! -path './.git/*' \
+              -print0
+          )
+
+          if [ "${#archivos[@]}" -eq 0 ]; then
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "No existe un archivo Markdown entregable."
+            exit 0
           fi
 
-      # 3. Instalar dependencias (solo si existe)
+          if [ "${#archivos[@]}" -gt 1 ]; then
+            echo "Se encontró más de un archivo Markdown entregable:"
+            printf ' - %s\n' "${archivos[@]}"
+            exit 1
+          fi
+
+          markdown="${archivos[0]#./}"
+          pdf="${markdown%.md}.pdf"
+
+          echo "existe=true" >> "$GITHUB_OUTPUT"
+          echo "markdown=$markdown" >> "$GITHUB_OUTPUT"
+          echo "pdf=$pdf" >> "$GITHUB_OUTPUT"
+          echo "Se convertirá $markdown en $pdf"
+
+      # 3. Instalar Pandoc y LaTeX solamente cuando exista el reporte.
       - name: Instalar dependencias
-        if: steps.check_reporte.outputs.existe == 'true'
+        if: steps.reporte.outputs.existe == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-plain-generic
-          pip install nbconvert
+          sudo apt-get install -y \
+            pandoc \
+            texlive-xetex \
+            texlive-fonts-recommended \
+            texlive-plain-generic
 
-      # 4. Convertir a PDF (solo si existe)
-      - name: Convertir a PDF
-        if: steps.check_reporte.outputs.existe == 'true'
-        run: |
-          echo "📄 Convirtiendo Reporte.ipynb a PDF..."
-          jupyter nbconvert --to pdf Reporte.ipynb
-
-      # 5. Commit y push (solo si existe)
-      - name: Commit y push
-        if: steps.check_reporte.outputs.existe == 'true'
+      # 4. Convertir el Markdown a un PDF con el mismo nombre.
+      - name: Convertir Markdown a PDF
+        if: steps.reporte.outputs.existe == 'true'
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MARKDOWN: ${{ steps.reporte.outputs.markdown }}
+          PDF: ${{ steps.reporte.outputs.pdf }}
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          git add Reporte.pdf || true
-          git commit -m "Agregar Reporte.pdf generado automáticamente" || echo "Sin cambios"
-          git push https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD
+          echo "Convirtiendo $MARKDOWN en $PDF..."
+          pandoc "$MARKDOWN" \
+            --from=gfm \
+            --standalone \
+            --pdf-engine=xelatex \
+            --resource-path=".:$(dirname "$MARKDOWN")" \
+            --output="$PDF"
+
+      # 5. Guardar el PDF generado en el repositorio.
+      - name: Commit y push
+        if: steps.reporte.outputs.existe == 'true'
+        env:
+          PDF: ${{ steps.reporte.outputs.pdf }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$PDF"
+
+          if git diff --cached --quiet; then
+            echo "El PDF no cambió; no se creará un commit."
+            exit 0
+          fi
+
+          git commit -m "Generar PDF del reporte Markdown"
+          git push
