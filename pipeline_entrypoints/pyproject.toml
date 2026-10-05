@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "titanic-entrypoint-pipeline"
+version = "0.1.0"
+description = "Pipeline de scikit-learn para Titanic expuesto con entry points de Python."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "joblib",
+    "pandas",
+    "scikit-learn",
+]
+
+[project.scripts]
+titanic-pipeline = "titanic_entrypoints.cli:main"
+titanic-train = "titanic_entrypoints.cli:train"
+titanic-predict = "titanic_entrypoints.cli:predict"
+
+[project.entry-points."titanic_entrypoints.pipeline_builders"]
+logistic-regression = "titanic_entrypoints.pipeline:build_pipeline"
