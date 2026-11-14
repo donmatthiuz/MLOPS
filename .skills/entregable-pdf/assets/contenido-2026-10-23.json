@@ -1,0 +1,584 @@
+{
+  "date": "2026-10-23",
+  "group": "2",
+  "repository": "https://github.com/donmatthiuz/RL/tree/proyecto",
+  "branch": "proyecto",
+  "title": "PolyRL — Propuesta actualizada y evidencia de entrega",
+  "author": "Equipo del proyecto PolyRL · Grupo {{grupo}}",
+  "subject": "Actualización del {{fecha_larga}}; evidencia de envío y aprobación del 16 de octubre de 2026",
+  "pages": [
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "EVIDENCIA DOCUMENTAL"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "Constancia de entrega<br/>y aprobación"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "Propuesta de proyecto: Aprendizaje por Refuerzo en Polymarket"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Se incorporan al inicio las capturas aportadas como evidencia de entrega oportuna de la propuesta original. En ellas constan el envío del <b>16 de octubre de 2026 a las 18:40</b> y la aprobación del profesor ese mismo día a las <b>22:29</b>."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "1. Aprobación del profesor"
+      },
+      {
+        "type": "image",
+        "path": "image copy.png"
+      },
+      {
+        "type": "spacer",
+        "height": 6
+      },
+      {
+        "type": "paragraph",
+        "style": "small",
+        "text": "<b>Luis Alberto Suriano Saravia · 16/10/2026, 22:29.</b> El mensaje confirma: «Aprobado». También indica que asume que el equipo corresponde al <b>grupo 2 del proyecto final</b>."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "2. Envío de la propuesta"
+      },
+      {
+        "type": "image",
+        "path": "image.png"
+      },
+      {
+        "type": "spacer",
+        "height": 6
+      },
+      {
+        "type": "paragraph",
+        "style": "small",
+        "text": "<b>Jose Emanuel Say García a Luis Alberto Suriano Saravia · 16/10/2026, 18:40.</b> La captura muestra el correo de envío, el archivo adjunto y la referencia al proyecto de Aprendizaje por Refuerzo."
+      },
+      {
+        "type": "spacer",
+        "height": 8
+      },
+      {
+        "type": "box",
+        "style": "body",
+        "text": "<b>Actualización de la propuesta: {{fecha_larga}}.</b><br/>Las páginas siguientes desarrollan la propuesta original e incorporan los cambios de documentación y código registrados en el repositorio durante esta fecha. Las capturas se conservan sin modificaciones."
+      }
+    ],
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "PROPUESTA ACTUALIZADA · {{fecha_mayusculas}}"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "PolyRL: aprendizaje por<br/>refuerzo en Polymarket"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "Datos históricos, decisiones secuenciales y operaciones con saldo ficticio."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Idea y objetivo"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Construir un agente que observe un mercado binario histórico y aprenda cuándo <b>comprar YES, comprar NO, vender o esperar</b>. El objetivo es comprobar si su política supera a estrategias simples en mercados que no se utilizaron para entrenarlo."
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Polymarket funciona como fuente de datos. El entrenamiento y la evaluación se realizarán en un simulador con <b>saldo ficticio</b>. El proyecto integra Deep Reinforcement Learning, datos reales, modelado de un entorno y evaluación estadística."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Cómo funcionará"
+      },
+      {
+        "type": "bullet",
+        "text": "<b>1. Datos:</b> seleccionar mercados resueltos de BTC, descargar sus precios y alinearlos con el precio spot. ETH queda como extensión si el tiempo lo permite."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>2. Simulación:</b> reproducir cada mercado como un episodio, con una posición a la vez, costos configurables y liquidación al conocerse el resultado."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>3. Aprendizaje:</b> entrenar PPO y DQN interactuando con el simulador; entrenar la variante offline con un conjunto fijo de transiciones."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>4. Comparación:</b> ejecutar todas las políticas sobre los mismos mercados de evaluación y medir retorno, riesgo, operaciones y costos."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Técnicas que se utilizarán"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Técnica",
+          "Aplicación prevista"
+        ],
+        "rows": [
+          [
+            "<b>PPO</b>",
+            "Agente principal; optimiza la política mediante una arquitectura actor-crítico."
+          ],
+          [
+            "<b>DQN</b>",
+            "Agente de comparación; estima el valor de las cuatro acciones discretas."
+          ],
+          [
+            "<b>Offline RL</b>",
+            "Discrete CQL; Behavior Cloning como referencia, ambos sobre transiciones fijas."
+          ],
+          [
+            "<b>Backtesting y recompensa</b>",
+            "Reproducción histórica y comparación de recompensas basadas en PnL, riesgo y resultado final."
+          ]
+        ],
+        "widths": [
+          120,
+          "remaining"
+        ],
+        "small": false
+      },
+      {
+        "type": "spacer",
+        "height": 9
+      },
+      {
+        "type": "box",
+        "style": "small",
+        "text": "<b>Precisión conceptual incorporada:</b> usar precios históricos en un simulador no convierte por sí solo a PPO o DQN en Offline RL. Si el agente interactúa con el entorno, el entrenamiento es online. La variante offline aprende de transiciones ya recolectadas."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Resultado esperado"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Una demo local en Streamlit que reproduzca un mercado paso a paso y muestre la acción, la posición y el saldo, junto con curvas de capital y una tabla comparativa frente a estrategias base. El informe explicará también los resultados negativos y las limitaciones."
+      }
+    ],
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "DISEÑO TÉCNICO PREVISTO"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "Datos, entorno y recompensa"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "La arquitectura se organiza por módulos y contratos para permitir el trabajo del equipo."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Módulo",
+          "Responsabilidad y salida"
+        ],
+        "rows": [
+          [
+            "<b>Datos y features</b>",
+            "Ingesta, limpieza y alineación temporal. Salidas previstas: markets.parquet, steps.parquet y manifest.json con hashes."
+          ],
+          [
+            "<b>Entorno</b>",
+            "PolymarketEnv compatible con Gymnasium; cartera, ejecución, costos, liquidación y componentes de recompensa."
+          ],
+          [
+            "<b>Agentes</b>",
+            "Interfaz común Policy para baselines, PPO, DQN y CQL/BC; checkpoints y configuración por corrida."
+          ],
+          [
+            "<b>Evaluación y demo</b>",
+            "Backtest común, métricas y trayectorias. La demo leerá resultados guardados para reproducir las decisiones."
+          ]
+        ],
+        "widths": [
+          113,
+          "remaining"
+        ],
+        "small": false
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Datos y prevención de fuga de información"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "La integración ya incorporada consulta metadatos, precios e historial mediante el paquete <b>rl_polymarket</b>. El pipeline completo añadirá caché, filtros de calidad y precio spot de BTC/ETH. La familia inicial propuesta es <i>Bitcoin Up or Down</i>; su selección definitiva depende de validar la granularidad de los mercados cerrados."
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "El conjunto se dividirá cronológicamente <b>por mercado</b>: aproximadamente 70 % para train, 15 % para validación y 15 % para test. Se usará solo información disponible hasta el instante observado, relleno hacia adelante y normalización ajustada únicamente en train."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Formulación del entorno"
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Estado:</b> precios YES/NO, cambios y volatilidad recientes, precio spot, tiempo restante, lado y tamaño de la posición, PnL no realizado y saldo normalizado."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Acciones:</b> WAIT, BUY_YES, BUY_NO y SELL. Una sola posición abierta y tamaño fijo configurable; sin apalancamiento y con saldo no negativo."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Transición:</b> avance al siguiente dato histórico. Se modelarán spread, slippage y comisión; las acciones inválidas se convertirán en WAIT y se penalizarán."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Final del episodio:</b> resolución del mercado y liquidación de la posición a 1 o 0 según el resultado del token mantenido."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Función de recompensa y variantes"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "La base será el cambio del valor total de la cartera normalizado por el capital inicial. La variante principal añadirá una penalización por aumento del drawdown. Los costos se reflejarán en el valor de la cartera; se podrán estudiar penalizaciones adicionales para acciones inválidas y tiempo de exposición."
+      },
+      {
+        "type": "box",
+        "style": "small",
+        "text": "<b>Variantes para comparar:</b> <i>pnl</i> (cambio de valor por paso), <i>pnl_risk</i> (PnL y riesgo) y <i>terminal</i> (resultado final). Con <i>pnl</i>, la suma de recompensas debe coincidir con el PnL final dividido por el capital inicial."
+      }
+    ],
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "ORGANIZACIÓN Y PLAN DE TRABAJO"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "Equipo, fases y entregables"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "Cinco roles documentados; asignaciones tomadas de docs/03_roles.md."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Rol / integrante",
+          "Responsabilidad principal",
+          "Respaldo"
+        ],
+        "rows": [
+          [
+            "<b>R1 · Por asignar</b><br/>Líder técnico e integrador",
+            "Integración, contratos, CLI, herramientas, CI/CD y coherencia de la documentación.",
+            "R4"
+          ],
+          [
+            "<b>R2 · Mathew</b><br/>Ingeniería de datos",
+            "APIs, dataset, features, split temporal y análisis exploratorio.",
+            "R5"
+          ],
+          [
+            "<b>R3 · Gustavo</b><br/>Entorno y recompensa",
+            "Simulador, cartera, costos, liquidación, invariantes y ablación de recompensa.",
+            "R4"
+          ],
+          [
+            "<b>R4 · Por asignar</b><br/>Agentes RL",
+            "Baselines, PPO, DQN, dataset offline, CQL/BC y entrenamiento reproducible.",
+            "R3"
+          ],
+          [
+            "<b>R5 · Por asignar</b><br/>Evaluación y demo",
+            "Backtesting, métricas, estadística, Streamlit, informe y presentación.",
+            "R2"
+          ]
+        ],
+        "widths": [
+          151,
+          291.27559055118115,
+          "remaining"
+        ],
+        "small": true
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Fases e hitos previstos"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Fase",
+          "Hito verificable de cierre"
+        ],
+        "rows": [
+          [
+            "<b>F0 · Preparación</b>",
+            "Herramientas y CI operativas; validar las APIs, acordar el MDP, el protocolo y las asignaciones pendientes."
+          ],
+          [
+            "<b>F1 · Datos y entorno</b>",
+            "Dataset v1, entorno validado y un baseline ejecutando episodios completos sobre datos reales."
+          ],
+          [
+            "<b>F2 · Agentes online</b>",
+            "PPO y DQN entrenados; prueba en entorno sintético y primera comparación en validación."
+          ],
+          [
+            "<b>F3 · Offline y ajuste</b>",
+            "CQL/BC, ablación de recompensa, modelos finales con cinco semillas y demo inicial."
+          ],
+          [
+            "<b>F4 · Entrega final</b>",
+            "Evaluación final en test, demo comparativa, informe, presentación y artefactos reproducibles."
+          ]
+        ],
+        "widths": [
+          132,
+          "remaining"
+        ],
+        "small": true
+      },
+      {
+        "type": "paragraph",
+        "style": "small",
+        "text": "Las fases expresan el orden del trabajo; no fijan fechas. Las tareas se clasifican en P0 (esenciales), P1 (de mejora) y P2 (opcionales). Si el tiempo es limitado, se recortarán primero las P2, incluida la extensión a ETH y la demo pública."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Colaboración y criterio de finalización"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "El trabajo se concentrará en la rama <b>proyecto</b>, con commits pequeños, sincronización antes de subir y pruebas por cada cambio de lógica. Cada rol mantiene sus módulos, documenta sus decisiones y contribuye al informe. Una tarea se dará por terminada cuando cumpla su aceptación, tenga pruebas y documentación y esté integrada con CI en verde."
+      }
+    ],
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "METODOLOGÍA Y CRITERIOS DE ÉXITO"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "Evaluación y calidad"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "El protocolo busca comprobar qué aprende el agente y bajo qué supuestos funciona."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Comparación de estrategias"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Los agentes se compararán con cinco estrategias base: <b>aleatoria, no operar, favorito, momentum y reversión a la media</b>. Todas utilizarán el mismo entorno, costos y mercados. Se seleccionarán modelos con validación; el test se reservará para la evaluación final, una vez congelados modelos e hiperparámetros."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Métricas:</b> retorno medio por mercado, retorno acumulado, Sharpe por episodio, drawdown máximo, win rate, número de operaciones, costos y porcentaje de acciones inválidas."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Repeticiones:</b> al menos cinco semillas para las configuraciones finales; media y dispersión entre semillas e intervalos de confianza del 95 % por bootstrap."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Análisis:</b> comparación pareada sobre los mismos mercados, ablación de la recompensa y, si el tiempo lo permite, sensibilidad a costos y ejecución al siguiente paso."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Hipótesis y entregables evaluables"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Se estudiará si PPO supera al mejor baseline fuera de muestra, si penalizar drawdown reduce el riesgo y si CQL iguala o supera a las políticas que generaron sus datos. <b>No superar los baselines también será un resultado válido</b> si la evaluación es rigurosa y la conclusión queda sustentada."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Entregable",
+          "Verificación prevista"
+        ],
+        "rows": [
+          [
+            "<b>Dataset y entorno</b>",
+            "Reconstrucción con el mismo hash; check_env de Gymnasium; conservación de cartera, saldo no negativo y ausencia de datos futuros."
+          ],
+          [
+            "<b>Agentes y comparación</b>",
+            "Checkpoints y curvas de aprendizaje para PPO, DQN y la variante offline; tabla en test con cinco semillas e IC del 95 %."
+          ],
+          [
+            "<b>Demo e informe</b>",
+            "Reproducción paso a paso, comparación visual y reporte de metodología, resultados, ablación y limitaciones."
+          ],
+          [
+            "<b>Calidad y reproducibilidad</b>",
+            "CI en proyecto; cobertura mínima objetivo de 70 % general y 90 % en módulos críticos. Configuración, semilla, dataset y commit por corrida."
+          ]
+        ],
+        "widths": [
+          132,
+          "remaining"
+        ],
+        "small": true
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Pruebas previstas"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Las pruebas unitarias usarán respuestas simuladas y semillas controladas. Se verificarán splits sin intersección, features sin información futura, liquidación, costos y acciones inválidas. Se añadirán pruebas de propiedades, integración de extremo a extremo y entrenamientos breves; las pruebas de red y los entrenamientos largos se ejecutarán por separado."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Riesgos y límites del diseño"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "Los principales riesgos son datos históricos poco granulares, fuga de información, sobreajuste, recompensa mal calibrada e integración tardía. Se mitigarán validando los datos primero, reservando test, usando fixtures y probando los módulos desde el inicio. El simulador asumirá ejecución price-taker y costos configurables; aproximará <b>p(NO) como 1 - p(YES)</b>. No reconstruirá el libro histórico completo. Estos supuestos se explicarán al interpretar los resultados."
+      }
+    ],
+    [
+      {
+        "type": "paragraph",
+        "style": "kicker",
+        "text": "CAMBIOS REGISTRADOS · {{fecha_mayusculas}}"
+      },
+      {
+        "type": "paragraph",
+        "style": "title",
+        "text": "Avances y estado actual"
+      },
+      {
+        "type": "paragraph",
+        "style": "subtitle",
+        "text": "Resumen basado en el historial local de Git, los archivos del proyecto y las pruebas ejecutadas."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Hora / commit",
+          "Cambio realizado"
+        ],
+        "rows": [
+          [
+            "<b>16:53 · 9e2c886</b>",
+            "README con el índice, el objetivo del proyecto y la ruta de lectura de la documentación."
+          ],
+          [
+            "<b>16:56 · 2271f36</b>",
+            "Siete documentos de planificación: idea, arquitectura, roles, tareas, testing, flujo de trabajo y riesgos/decisiones."
+          ],
+          [
+            "<b>18:39 · 08e7188</b>",
+            "Paquete rl_polymarket, configuración, CLI de consulta, guía de integración, plantilla de variables y pruebas. Actualización de la asignación de R2 a Mathew."
+          ]
+        ],
+        "widths": [
+          133,
+          "remaining"
+        ],
+        "small": true
+      },
+      {
+        "type": "paragraph",
+        "style": "small",
+        "text": "Horas de los commits con desfase UTC−06:00, correspondiente a Guatemala."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Implementado y comprobado"
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Base instalable:</b> Python 3.11 o posterior, pyproject.toml, dependencia fijada polymarket-client==0.14.0 y comando <b>rl-polymarket</b>."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Consultas:</b> mercados y detalle por slug, libro, precio de compra/venta, punto medio e historial paginado. El paquete selecciona identificadores de resultado v1/v2 y conserva precisión decimal en la salida JSON."
+      },
+      {
+        "type": "bullet",
+        "text": "<b>Cuenta opcional:</b> configuración con variables de entorno y .env; acceso autenticado explícito para consultar cuenta y órdenes abiertas. Los comandos implementados consultan información y no envían ni cancelan órdenes."
+      },
+      {
+        "type": "box",
+        "style": "small",
+        "text": "<b>Verificación local:</b> <font face=\"Mono\" size=\"8\">venv/bin/python -m pytest -q</font><br/><b>Resultado: 22 pruebas aprobadas.</b> Cubren configuración, autenticación simulada, paginación, precisión de precios, historial, errores y cierre de conexiones. El transporte HTTP está simulado; este resultado valida la integración local."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Diferencia entre la base actual y la arquitectura prevista"
+      },
+      {
+        "type": "paragraph",
+        "style": "body",
+        "text": "La base actual utiliza <b>src/rl_polymarket</b> y una CLI con <b>argparse</b>. La documentación describe como destino el paquete <b>polyrl</b>, la configuración YAML y los comandos de datos, entrenamiento y evaluación. Esa integración sigue pendiente, junto con el dataset procesado, Gymnasium, las funciones de recompensa, los agentes entrenados, el backtesting, la demo y los workflows de CI/CD. A esta fecha no se reportan resultados experimentales ni hipótesis confirmadas."
+      },
+      {
+        "type": "paragraph",
+        "style": "h2",
+        "text": "Documentos que sustentan esta actualización"
+      },
+      {
+        "type": "paragraph",
+        "style": "small",
+        "text": "Propuesta original: <i>Propuesta_Proyecto_RL_Polymarket_final (2).pdf</i>. Evidencia: <i>image copy.png</i> e <i>image.png</i>. Desarrollo técnico: <b>README.md</b>, <b>docs/01_idea_general.md</b> a <b>docs/07_riesgos_y_decisiones.md</b>, <b>docs/polymarket.md</b>, <b>pyproject.toml</b>, <b>src/rl_polymarket/</b> y <b>tests/test_polymarket.py</b>."
+      }
+    ]
+  ]
+}

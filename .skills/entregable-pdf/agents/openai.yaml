@@ -1,0 +1,4 @@
+interface:
+  display_name: "Entregable PDF de PolyRL"
+  short_description: "Reproduce el formato del entregable académico de PolyRL"
+  default_prompt: "Usa $entregable-pdf para generar el entregable de PolyRL con el mismo formato del PDF del 16 y 23 de octubre."
