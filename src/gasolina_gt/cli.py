@@ -30,6 +30,8 @@ def main() -> None:
     p_rec.add_argument("--hora", type=int, default=None)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    if load_config()["source"]["mode"] != "local":
+        parser.error("Esta CLI procesa archivos locales. En Databricks ejecute pipelines/01_bronze.py, 02_silver.py y 03_gold.py.")
 
     if args.comando == "build-data":
         silver = construir_silver()

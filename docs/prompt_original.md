@@ -1,3 +1,9 @@
+# Solicitud original (archivo histórico)
+
+Este texto conserva el planteamiento inicial. Sus rutas absolutas y la recomendación por hora no sustituyen el enunciado final ni la configuración de `.env`.
+
+---
+
 Debes de implementar un programa en python que lee los datos de /home/donmathiuz/MLOPS/ProyectoFInal/datos, vas a crear un modelo en usando como referencia las etapas del ciclo de CRISP-DM relacionadas a diseño y evaluación de modelos de Machine Learning (Modeling, Evaluation)
 
 Y de que trata el proyecto ?

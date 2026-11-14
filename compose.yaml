@@ -1,56 +1,53 @@
 name: gasolina-gt
 
+x-app: &app
+  build:
+    context: .
+    dockerfile: api/Dockerfile
+    target: production
+  environment:
+    DATA_SOURCE: local
+    LOCAL_DATA_DIR: /app/datos
+    LOCAL_BRONZE_DIR: /app/datos_procesados/bronze
+    LOCAL_SILVER_DIR: /app/datos_procesados/silver
+    LOCAL_GOLD_DIR: /app/datos_procesados/gold
+    LOCAL_MODELS_DIR: /app/models
+    LOCAL_REPORTS_DIR: /app/reports
+  volumes:
+    - ${LOCAL_DATA_DIR:-./datos}:/app/datos:ro
+    - processed_data:/app/datos_procesados
+    - models:/app/models
+    - reports:/app/reports
+
 services:
-  # Construye Bronze/Silver/Gold y entrena los modelos. Se ejecuta una vez
-  # antes de iniciar la API; sus artefactos quedan en volúmenes persistentes.
   bootstrap:
-    build:
-      context: .
-      target: production
-    command: >
-      sh -c "gasolina-gt build-data && gasolina-gt train --combustible regular"
-    volumes:
-      - processed_data:/app/datos_procesados
-      - models:/app/models
-      - reports:/app/reports
+    <<: *app
+    command: sh -c "gasolina-gt build-data && gasolina-gt train --combustible regular"
     restart: "no"
 
   api:
-    build:
-      context: .
-      target: production
+    <<: *app
     depends_on:
       bootstrap:
         condition: service_completed_successfully
-    command: uvicorn gasolina_gt.serving.api:app --host 0.0.0.0 --port 8000
+    command: uvicorn api.app.main:app --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"
-    volumes:
-      - processed_data:/app/datos_procesados
-      - models:/app/models
-      - reports:/app/reports
+      - "${API_PORT:-8000}:8000"
     restart: unless-stopped
 
-  # Ejecutar bajo demanda: docker compose run --rm tests
   tests:
+    <<: *app
     build:
       context: .
+      dockerfile: api/Dockerfile
       target: test
     profiles: ["test"]
     command: pytest -q
 
-  # Ejecutar bajo demanda, por ejemplo:
-  # docker compose run --rm cli recommend --combustible regular --hora 18
   cli:
-    build:
-      context: .
-      target: production
+    <<: *app
     profiles: ["tools"]
     entrypoint: ["gasolina-gt"]
-    volumes:
-      - processed_data:/app/datos_procesados
-      - models:/app/models
-      - reports:/app/reports
 
 volumes:
   processed_data:

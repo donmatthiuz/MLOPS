@@ -110,8 +110,9 @@ def generar_serie_sintetica(
         df_real = anclas_reales.copy()
         df_real["fuente"] = "real"
         df_final = pd.concat([df_sintetico, df_real], ignore_index=True)
+        df_final["fecha"] = pd.to_datetime(df_final["fecha"]).dt.date
         df_final = (
-            df_final.sort_values("fuente")  # "sintetico" < "real" alfabéticamente -> real queda último
+            df_final.sort_values("fuente", ascending=False)  # sintético primero, real último
             .drop_duplicates(subset=["fecha", "tipo_combustible"], keep="last")
             .sort_values(["tipo_combustible", "fecha"])
             .reset_index(drop=True)

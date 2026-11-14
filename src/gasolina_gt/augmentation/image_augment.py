@@ -42,7 +42,7 @@ def _jitter_perspectiva(img: np.ndarray, max_px: int, rng: np.random.Generator) 
 def generar_variantes(imagen_rgb: np.ndarray, n: int, config: dict, semilla: int = 0) -> list[np.ndarray]:
     """Genera `n` variantes aumentadas de una imagen (recorte de panel o
     imagen completa), combinando rotación, brillo/contraste, ruido y
-    perspectiva según los rangos definidos en config/config.yaml."""
+    perspectiva según los rangos definidos en la configuración del entorno."""
     aug_cfg = config["augmentation"]
     rng = np.random.default_rng(semilla)
     variantes = []

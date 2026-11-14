@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Datos locales y secretos
+.env
+**/.env
+*.pem
+*.key
+datos/*
+
+# Artefactos locales generados
+datos_procesados/
+models/
+reports/

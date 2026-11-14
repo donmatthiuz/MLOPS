@@ -25,6 +25,8 @@ def construir_silver(config: dict | None = None) -> pd.DataFrame:
     válidas (que pasaron el umbral de confianza y el rango plausible) como
     tabla limpia: fecha (real, EXIF), tipo_combustible, precio."""
     cfg = config or load_config()
+    if cfg["source"]["mode"] != "local":
+        raise RuntimeError("Para Databricks ejecute pipelines/02_silver.py")
     extractor = ExtractorPrecios(cfg)
     registros = extractor.procesar_directorio()
     extractor.guardar_bronze(registros)
@@ -62,6 +64,8 @@ def construir_gold(
     """Combina anclas reales + serie sintética calibrada, y agrega las
     features de modelado (lags, medias móviles, calendario)."""
     cfg = config or load_config()
+    if cfg["source"]["mode"] != "local":
+        raise RuntimeError("Para Databricks ejecute pipelines/03_gold.py")
     df_silver = df_silver if df_silver is not None else construir_silver(cfg)
 
     fecha_fin = fecha_fin or date.today()
@@ -82,6 +86,8 @@ def construir_gold(
 
 def cargar_gold_si_existe(config: dict | None = None) -> pd.DataFrame | None:
     cfg = config or load_config()
+    if cfg["source"]["mode"] != "local":
+        return None
     ruta = resolve_path(cfg["paths"]["gold"]) / "dataset_modelado.csv"
     if not ruta.exists():
         return None

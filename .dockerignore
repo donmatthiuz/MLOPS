@@ -9,3 +9,8 @@ build/
 dist/
 *.egg-info/
 .git/
+.env
+**/.env
+datos/
+docs/
+presentacion/

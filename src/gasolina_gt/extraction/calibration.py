@@ -1,4 +1,4 @@
-"""Calibración de las regiones de panel de precio (datos/calibracion_paneles.json).
+"""Calibración de las regiones de panel de precio (src/gasolina_gt/extraction/calibracion_paneles.json).
 
 Contexto: con solo 5 fotos piloto del mismo dispensor Shell, entrenar un
 detector de objetos (Vision Transformer / YOLO, como plantea el Business
@@ -14,15 +14,14 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from ..config import PROJECT_ROOT
-
-CALIBRACION_PATH = PROJECT_ROOT / "datos" / "calibracion_paneles.json"
 
 BoundingBoxFraccional = tuple[float, float, float, float]
 
 
 class CalibracionPaneles:
-    def __init__(self, path: Path | str = CALIBRACION_PATH):
+    def __init__(self, path: Path | str | None = None):
+        if path is None:
+            path = Path(__file__).with_name("calibracion_paneles.json")
         with open(path, "r", encoding="utf-8") as fh:
             self._data = json.load(fh)
         self.perfiles: dict[str, dict[str, Optional[BoundingBoxFraccional]]] = self._data["perfiles"]
