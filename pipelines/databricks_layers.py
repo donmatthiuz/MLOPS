@@ -19,7 +19,7 @@ def _spark():
 
 def _table(cfg: dict, layer: str, name: str) -> str:
     catalog = cfg["source"]["catalog"]
-    return f"{catalog}.{layer}.{name}"
+    return f"{catalog}.equipo7.{layer}_{name}"
 
 
 def _path(cfg: dict, layer: str, name: str) -> str:
@@ -45,7 +45,6 @@ def _ensure_layer_dir(spark, cfg: dict, layer: str) -> None:
 
 
 def _register(spark, cfg: dict, layer: str, name: str) -> None:
-    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {cfg['source']['catalog']}.{layer}")
     spark.sql(f"CREATE TABLE IF NOT EXISTS {_table(cfg, layer, name)} USING DELTA LOCATION '{_path(cfg, layer, name)}'")
 
 

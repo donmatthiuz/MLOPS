@@ -12,6 +12,7 @@ from pipelines import databricks_layers
 class DatabricksPathsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.cfg = {"source": {
+            "catalog": "workspace",
             "bronze_input": "s3://bucket-bronce/",
             "bronze_output": "s3://bucket-bronce/",
             "silver_output": "s3://bucket-plata/",
@@ -38,3 +39,11 @@ class DatabricksPathsTest(unittest.TestCase):
                                       "pyspark.dbutils": dbutils_module}):
             databricks_layers._ensure_layer_dir(Mock(), self.cfg, "silver")
         mkdirs.assert_called_once_with("s3://bucket-plata/equipo7")
+
+    def test_registra_tabla_en_esquema_existente(self) -> None:
+        spark = Mock()
+        databricks_layers._register(spark, self.cfg, "bronze", "fotos_precios")
+        spark.sql.assert_called_once_with(
+            "CREATE TABLE IF NOT EXISTS workspace.equipo7.bronze_fotos_precios "
+            "USING DELTA LOCATION 's3://bucket-bronce/equipo7/fotos_precios'"
+        )

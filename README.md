@@ -43,10 +43,10 @@ BRONZE_INPUT_URI=s3://bucket-bronce/img/
 BRONZE_OUTPUT_URI=s3://bucket-bronce/
 SILVER_OUTPUT_URI=s3://bucket-plata/
 GOLD_OUTPUT_URI=s3://bucket-oro/
-DATABRICKS_CATALOG=equipo7
+DATABRICKS_CATALOG=workspace
 ```
 
-Las imágenes se leen de `img/`. `BRONZE_INPUT_URI` puede apuntar al bucket o directamente a `img/`. Antes de escribir, cada tarea crea si falta `equipo7/` dentro del prefijo de salida de su capa. Si la URI ya termina en `equipo7/`, se utiliza tal cual. Las tablas Delta quedan en `equipo7/fotos_precios`, `equipo7/precios` y `equipo7/precio_semanal`, entre otras.
+Las imágenes se leen de `img/`. `BRONZE_INPUT_URI` puede apuntar al bucket o directamente a `img/`. Antes de escribir, cada tarea crea si falta `equipo7/` dentro del prefijo de salida de su capa. Si la URI ya termina en `equipo7/`, se utiliza tal cual. Las tablas Delta quedan en `equipo7/fotos_precios`, `equipo7/precios` y `equipo7/precio_semanal`, entre otras. Las tablas de Unity Catalog se registran en el esquema existente `workspace.equipo7` con nombres como `bronze_fotos_precios`, `silver_precios` y `gold_precio_semanal`.
 
 Las rutas son **prefijos autorizados mediante external locations**, no nombres de credenciales. El administrador debe configurar storage credentials, external locations y permisos de Unity Catalog. Instale este paquete en el cluster y ejecute las tres entradas `pipelines/01_bronze.py` → `02_silver.py` → `03_gold.py` como tareas Python del Job. Bronce lee con `binaryFile` e ingesta por ruta única; Plata extrae OCR, aplica reglas de calidad y separa rechazos; Oro genera indicadores semanales y variables en Delta. El entrenamiento y publicación de predicciones en Databricks, el Job exportado y el despliegue en el Droplet se completarán cuando existan infraestructura, fotos históricas y credenciales. No hay recursos Databricks desplegados desde este repositorio todavía.
 
