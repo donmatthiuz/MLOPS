@@ -42,6 +42,7 @@ def load_config() -> dict[str, Any]:
             "silver_output": env("SILVER_OUTPUT_URI"),
             "gold_output": env("GOLD_OUTPUT_URI"),
             "catalog": env("DATABRICKS_CATALOG"),
+            "register_external_tables": env("REGISTER_EXTERNAL_TABLES", "false").lower() == "true",
         },
         "paths": {
             "datos_raw": env("LOCAL_DATA_DIR", str(PROJECT_ROOT / "datos")),
