@@ -16,6 +16,7 @@ Estado observado el 15 de noviembre de 2026. Referencia: [enunciado del proyecto
 
 - [x] Comprobar que una segunda ejecución no duplica las fotos.
 - [ ] Integrar su ejecución en el Job completo; esto es un pendiente de orquestación, no de la lógica de Bronce.
+- [x] Verificación automática filas = fotos y sin duplicados; fuente complementaria WTI. Ver [docs/bronce](bronce/README.md).
 
 ### Plata
 
