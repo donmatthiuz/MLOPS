@@ -11,9 +11,6 @@ from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from gasolina_gt.extraction.extractor import ExtractorPrecios
-from gasolina_gt.extraction.heic_loader import cargar_imagen_generica
-
 
 def _spark():
     from pyspark.sql import SparkSession
@@ -26,7 +23,25 @@ def _table(cfg: dict, layer: str, name: str) -> str:
 
 
 def _path(cfg: dict, layer: str, name: str) -> str:
-    return cfg["source"][f"{layer}_output"].rstrip("/") + "/" + name
+    return _layer_dir(cfg, layer) + "/" + name
+
+
+def _layer_dir(cfg: dict, layer: str) -> str:
+    base = cfg["source"][f"{layer}_output"].rstrip("/")
+    return base if base.rsplit("/", 1)[-1] == "equipo7" else base + "/equipo7"
+
+
+def _image_dir(cfg: dict) -> str:
+    base = cfg["source"]["bronze_input"].rstrip("/")
+    return base if base.rsplit("/", 1)[-1] == "img" else base + "/img"
+
+
+def _ensure_layer_dir(spark, cfg: dict, layer: str) -> None:
+    from pyspark.dbutils import DBUtils
+
+    path = _layer_dir(cfg, layer)
+    if not DBUtils(spark).fs.mkdirs(path):
+        raise RuntimeError(f"No se pudo crear la carpeta de {layer}: {path}")
 
 
 def _register(spark, cfg: dict, layer: str, name: str) -> None:
@@ -39,7 +54,8 @@ def bronze(cfg: dict) -> None:
     from pyspark.sql import functions as F
 
     spark = _spark()
-    source = cfg["source"]["bronze_input"]
+    _ensure_layer_dir(spark, cfg, "bronze")
+    source = _image_dir(cfg)
     dest = _path(cfg, "bronze", "fotos_precios")
     photos = (spark.read.format("binaryFile")
               .option("recursiveFileLookup", "true")
@@ -66,8 +82,11 @@ def _photo_date(path: str, modification_time) -> date:
 def silver(cfg: dict) -> None:
     from delta.tables import DeltaTable
     from pyspark.sql import types as T
+    from gasolina_gt.extraction.extractor import ExtractorPrecios
+    from gasolina_gt.extraction.heic_loader import cargar_imagen_generica
 
     spark = _spark()
+    _ensure_layer_dir(spark, cfg, "silver")
     bronze_path = _path(cfg, "bronze", "fotos_precios")
     if not DeltaTable.isDeltaTable(spark, bronze_path):
         raise RuntimeError("Primero ejecute 01_bronze.py")
@@ -141,6 +160,7 @@ def gold(cfg: dict) -> None:
     from pyspark.sql import Window, functions as F
 
     spark = _spark()
+    _ensure_layer_dir(spark, cfg, "gold")
     silver_path = _path(cfg, "silver", "precios")
     if not DeltaTable.isDeltaTable(spark, silver_path):
         raise RuntimeError("Primero ejecute 02_silver.py y obtenga al menos una lectura válida")
