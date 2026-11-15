@@ -52,3 +52,16 @@ class DatabricksPathsTest(unittest.TestCase):
             "USING DELTA AS SELECT * FROM _equipo7_bronze_fotos_precios_source"
         )
         spark.catalog.dropTempView.assert_called_once_with("_equipo7_bronze_fotos_precios_source")
+
+    def test_wti_rechaza_csv_con_formato_inesperado(self) -> None:
+        dbutils_module = types.ModuleType("pyspark.dbutils")
+        dbutils_module.DBUtils = Mock()
+        sql_module = types.ModuleType("pyspark.sql")
+        sql_module.functions = Mock()
+        response = Mock(text="<html>error</html>")
+        with patch.dict(sys.modules, {"pyspark": types.ModuleType("pyspark"), "pyspark.dbutils": dbutils_module,
+                                      "pyspark.sql": sql_module}), \
+                patch("requests.get", return_value=response):
+            with self.assertRaises(RuntimeError):
+                databricks_layers._bronze_wti(Mock(), self.cfg)
+        dbutils_module.DBUtils.assert_not_called()

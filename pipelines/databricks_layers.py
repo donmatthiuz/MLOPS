@@ -84,6 +84,36 @@ def bronze(cfg: dict) -> None:
     if missing or total != distinct:
         raise RuntimeError(f"Bronce inconsistente: {missing} fotos sin cargar, {total - distinct} duplicadas")
     print(f"Bronce: {source_paths.count()} fotos en la carpeta, {total} filas en la tabla, {total - before} nuevas en esta carga")
+    _bronze_wti(spark, cfg)
+
+
+WTI_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO"
+
+
+def _bronze_wti(spark, cfg: dict) -> None:
+    """Fuente complementaria opcional: precio WTI diario (FRED) en su CSV original."""
+    import requests
+    from pyspark.dbutils import DBUtils
+    from pyspark.sql import functions as F
+
+    try:
+        response = requests.get(WTI_URL, timeout=30)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"Bronce WTI omitido (sin acceso a FRED): {exc}")  # opcional: no detiene las fotos
+        return
+    if not response.text.startswith("observation_date,DCOILWTICO"):
+        raise RuntimeError("FRED cambió el formato del CSV de WTI")
+    raw = f"{_layer_dir(cfg, 'bronze')}/fuentes/wti/{date.today().isoformat()}.csv"
+    DBUtils(spark).fs.put(raw, response.text, True)
+    # Copia completa de la serie en cada carga: reemplazar es idempotente y FRED corrige valores pasados.
+    (spark.read.option("header", "true").csv(raw)
+     .withColumn("_ingestion_timestamp", F.current_timestamp())
+     .withColumn("_source_file", F.lit(raw))
+     .write.format("delta").mode("overwrite").option("overwriteSchema", "true")
+     .save(_path(cfg, "bronze", "petroleo_wti")))
+    _sync_managed_table(spark, cfg, "bronze", "petroleo_wti")
+    print(f"Bronce WTI: {spark.read.format('delta').load(_path(cfg, 'bronze', 'petroleo_wti')).count()} días en {raw}")
 
 
 def _photo_date(path: str, modification_time) -> date:
