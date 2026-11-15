@@ -40,14 +40,18 @@ class DatabricksPathsTest(unittest.TestCase):
             databricks_layers._ensure_layer_dir(Mock(), self.cfg, "silver")
         mkdirs.assert_called_once_with("s3://bucket-plata/equipo7")
 
-    def test_registra_tabla_en_esquema_existente(self) -> None:
+    def test_copia_delta_a_tabla_administrada_del_esquema(self) -> None:
         spark = Mock()
-        databricks_layers._register(spark, self.cfg, "bronze", "fotos_precios")
-        spark.sql.assert_not_called()
-
-        self.cfg["source"]["register_external_tables"] = True
-        databricks_layers._register(spark, self.cfg, "bronze", "fotos_precios")
-        spark.sql.assert_called_once_with(
-            "CREATE TABLE IF NOT EXISTS workspace.equipo7.bronze_fotos_precios "
-            "USING DELTA LOCATION 's3://bucket-bronce/equipo7/fotos_precios'"
+        databricks_layers._sync_managed_table(spark, self.cfg, "bronze", "fotos_precios")
+        spark.read.format.assert_called_once_with("delta")
+        spark.read.format.return_value.load.assert_called_once_with(
+            "s3://bucket-bronce/equipo7/fotos_precios"
         )
+        spark.read.format.return_value.load.return_value.createOrReplaceTempView.assert_called_once_with(
+            "_equipo7_bronze_fotos_precios_source"
+        )
+        spark.sql.assert_called_once_with(
+            "CREATE OR REPLACE TABLE workspace.equipo7.bronze_fotos_precios "
+            "USING DELTA AS SELECT * FROM _equipo7_bronze_fotos_precios_source"
+        )
+        spark.catalog.dropTempView.assert_called_once_with("_equipo7_bronze_fotos_precios_source")
