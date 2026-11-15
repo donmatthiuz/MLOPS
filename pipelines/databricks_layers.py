@@ -45,6 +45,8 @@ def _ensure_layer_dir(spark, cfg: dict, layer: str) -> None:
 
 
 def _register(spark, cfg: dict, layer: str, name: str) -> None:
+    if not cfg["source"].get("register_external_tables", False):
+        return
     spark.sql(f"CREATE TABLE IF NOT EXISTS {_table(cfg, layer, name)} USING DELTA LOCATION '{_path(cfg, layer, name)}'")
 
 

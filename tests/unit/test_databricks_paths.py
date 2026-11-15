@@ -43,6 +43,10 @@ class DatabricksPathsTest(unittest.TestCase):
     def test_registra_tabla_en_esquema_existente(self) -> None:
         spark = Mock()
         databricks_layers._register(spark, self.cfg, "bronze", "fotos_precios")
+        spark.sql.assert_not_called()
+
+        self.cfg["source"]["register_external_tables"] = True
+        databricks_layers._register(spark, self.cfg, "bronze", "fotos_precios")
         spark.sql.assert_called_once_with(
             "CREATE TABLE IF NOT EXISTS workspace.equipo7.bronze_fotos_precios "
             "USING DELTA LOCATION 's3://bucket-bronce/equipo7/fotos_precios'"
