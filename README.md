@@ -1,4 +1,4 @@
-# Gasolina GT
+# Gasolina GT  Proyecto
 
 Proyecto de extracción de precios desde fotografías y preparación de datos Bronce → Plata → Oro. El origen se selecciona en `.env`: carpeta local para desarrollar ahora; rutas de external locations de Unity Catalog cuando se despliegue en Databricks.
 
