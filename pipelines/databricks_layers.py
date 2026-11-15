@@ -68,13 +68,22 @@ def bronze(cfg: dict) -> None:
               .filter(F.lower(F.regexp_extract("path", r"\.([^.]+)$", 1)).isin("heic", "jpg", "jpeg", "png"))
               .withColumn("_ingestion_timestamp", F.current_timestamp())
               .withColumn("_source_file", F.col("path")))
+    before = 0
     if DeltaTable.isDeltaTable(spark, dest):
+        before = spark.read.format("delta").load(dest).count()
         target = DeltaTable.forPath(spark, dest)
         target.alias("t").merge(photos.alias("s"), "t.path = s.path").whenNotMatchedInsertAll().execute()
     else:
         photos.write.format("delta").mode("overwrite").save(dest)
     _sync_managed_table(spark, cfg, "bronze", "fotos_precios")
-    print(f"Bronce: {spark.read.format('delta').load(dest).count()} fotos únicas")
+    # Criterio de aceptación: cada foto de la carpeta está una sola vez en la tabla.
+    table = spark.read.format("delta").load(dest)
+    source_paths = photos.select("path")  # binaryFile no lee el contenido si no se selecciona
+    total, distinct = table.count(), table.select("path").distinct().count()
+    missing = source_paths.subtract(table.select("path")).count()
+    if missing or total != distinct:
+        raise RuntimeError(f"Bronce inconsistente: {missing} fotos sin cargar, {total - distinct} duplicadas")
+    print(f"Bronce: {source_paths.count()} fotos en la carpeta, {total} filas en la tabla, {total - before} nuevas en esta carga")
 
 
 def _photo_date(path: str, modification_time) -> date:
