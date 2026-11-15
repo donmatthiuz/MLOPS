@@ -44,10 +44,14 @@ def _ensure_layer_dir(spark, cfg: dict, layer: str) -> None:
         raise RuntimeError(f"No se pudo crear la carpeta de {layer}: {path}")
 
 
-def _register(spark, cfg: dict, layer: str, name: str) -> None:
-    if not cfg["source"].get("register_external_tables", False):
-        return
-    spark.sql(f"CREATE TABLE IF NOT EXISTS {_table(cfg, layer, name)} USING DELTA LOCATION '{_path(cfg, layer, name)}'")
+def _sync_managed_table(spark, cfg: dict, layer: str, name: str) -> None:
+    """Actualiza la tabla administrada del equipo desde el Delta de su bucket."""
+    view = f"_equipo7_{layer}_{name}_source"
+    spark.read.format("delta").load(_path(cfg, layer, name)).createOrReplaceTempView(view)
+    try:
+        spark.sql(f"CREATE OR REPLACE TABLE {_table(cfg, layer, name)} USING DELTA AS SELECT * FROM {view}")
+    finally:
+        spark.catalog.dropTempView(view)
 
 
 def bronze(cfg: dict) -> None:
@@ -69,7 +73,7 @@ def bronze(cfg: dict) -> None:
         target.alias("t").merge(photos.alias("s"), "t.path = s.path").whenNotMatchedInsertAll().execute()
     else:
         photos.write.format("delta").mode("overwrite").save(dest)
-    _register(spark, cfg, "bronze", "fotos_precios")
+    _sync_managed_table(spark, cfg, "bronze", "fotos_precios")
     print(f"Bronce: {spark.read.format('delta').load(dest).count()} fotos únicas")
 
 
@@ -152,7 +156,9 @@ def silver(cfg: dict) -> None:
             DeltaTable.forPath(spark, path).alias("t").merge(incoming.alias("s"), condition).whenNotMatchedInsertAll().execute()
         else:
             incoming.write.format("delta").mode("overwrite").save(path)
-        _register(spark, cfg, "silver", layer_name)
+    for layer_name, path in (("precios", silver_path), ("precios_rejected", rejected_path)):
+        if DeltaTable.isDeltaTable(spark, path):
+            _sync_managed_table(spark, cfg, "silver", layer_name)
     print(f"Plata: {len(accepted)} lecturas válidas, {len(rejected)} rechazadas en esta ejecución")
 
 
@@ -184,5 +190,5 @@ def gold(cfg: dict) -> None:
     for name, frame in (("precio_semanal", weekly), ("variacion_semanal", variations), ("features_modelo", features)):
         path = _path(cfg, "gold", name)
         frame.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(path)
-        _register(spark, cfg, "gold", name)
+        _sync_managed_table(spark, cfg, "gold", name)
     print("Oro: precio_semanal, variacion_semanal y features_modelo actualizados")
