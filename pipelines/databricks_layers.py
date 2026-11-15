@@ -84,7 +84,7 @@ def _photo_date(path: str, modification_time) -> date:
     return modification_time.date()
 
 
-def silver(cfg: dict) -> None:
+def silver(cfg: dict, *, reprocess: bool = False) -> None:
     from delta.tables import DeltaTable
     from pyspark.sql import types as T
     from gasolina_gt.extraction.extractor import ExtractorPrecios
@@ -98,9 +98,10 @@ def silver(cfg: dict) -> None:
     silver_path = _path(cfg, "silver", "precios")
     rejected_path = _path(cfg, "silver", "precios_rejected")
     processed = set()
-    for path in (silver_path, rejected_path):
-        if DeltaTable.isDeltaTable(spark, path):
-            processed.update(row.foto_origen for row in spark.read.format("delta").load(path).select("foto_origen").distinct().toLocalIterator())
+    if not reprocess:
+        for path in (silver_path, rejected_path):
+            if DeltaTable.isDeltaTable(spark, path):
+                processed.update(row.foto_origen for row in spark.read.format("delta").load(path).select("foto_origen").distinct().toLocalIterator())
     extractor = ExtractorPrecios(cfg)
     accepted, rejected = [], []
     for row in spark.read.format("delta").load(bronze_path).toLocalIterator():
@@ -141,25 +142,30 @@ def silver(cfg: dict) -> None:
         T.StructField("foto_origen", T.StringType()), T.StructField("combustible", T.StringType()),
         T.StructField("motivo", T.StringType()), T.StructField("_processed_timestamp", T.TimestampType()),
     ])
+    if reprocess and not accepted:
+        raise RuntimeError("El reproceso no produjo precios válidos; se conservaron las tablas Plata anteriores")
     for rows, schema, path, layer_name, condition in (
         (accepted, price_schema, silver_path, "precios", "t.fecha = s.fecha AND t.ubicacion = s.ubicacion AND t.combustible = s.combustible AND t.modalidad = s.modalidad"),
         (rejected, reject_schema, rejected_path, "precios_rejected", "t.foto_origen = s.foto_origen AND t.combustible <=> s.combustible AND t.motivo = s.motivo"),
     ):
-        if not rows:
+        if not rows and not reprocess:
             continue
         incoming = spark.createDataFrame(rows, schema)
         if layer_name == "precios":
             incoming = incoming.dropDuplicates(["fecha", "ubicacion", "combustible", "modalidad"])
         else:
             incoming = incoming.dropDuplicates(["foto_origen", "combustible", "motivo"])
-        if DeltaTable.isDeltaTable(spark, path):
+        if reprocess:
+            incoming.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(path)
+        elif DeltaTable.isDeltaTable(spark, path):
             DeltaTable.forPath(spark, path).alias("t").merge(incoming.alias("s"), condition).whenNotMatchedInsertAll().execute()
         else:
             incoming.write.format("delta").mode("overwrite").save(path)
     for layer_name, path in (("precios", silver_path), ("precios_rejected", rejected_path)):
         if DeltaTable.isDeltaTable(spark, path):
             _sync_managed_table(spark, cfg, "silver", layer_name)
-    print(f"Plata: {len(accepted)} lecturas válidas, {len(rejected)} rechazadas en esta ejecución")
+    mode = "reprocesada" if reprocess else "incremental"
+    print(f"Plata {mode}: {len(accepted)} lecturas válidas, {len(rejected)} rechazadas en esta ejecución")
 
 
 def gold(cfg: dict) -> None:

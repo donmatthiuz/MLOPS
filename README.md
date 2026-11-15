@@ -52,6 +52,10 @@ Según el enunciado del curso, S3 guarda físicamente cada capa: Bronce recibe l
 
 Las rutas son **prefijos autorizados mediante external locations**, no nombres de credenciales. El administrador debe configurar storage credentials, external locations y permisos de Unity Catalog. Instale este paquete en el cluster y ejecute las tres entradas `pipelines/01_bronze.py` → `02_silver.py` → `03_gold.py` como tareas Python del Job. Bronce lee con `binaryFile` e ingesta por ruta única; Plata extrae OCR, aplica reglas de calidad y separa rechazos; Oro genera indicadores semanales y variables en Delta. El entrenamiento y publicación de predicciones en Databricks, el Job exportado y el despliegue en el Droplet se completarán cuando existan infraestructura, fotos históricas y credenciales. No hay recursos Databricks desplegados desde este repositorio todavía.
 
+### Reprocesar Plata y Oro
+
+En un notebook de Databricks, después de importar `settings`, `silver` y `gold` desde `databricks_layers`, ejecute `silver(settings(), reprocess=True)` y, cuando termine correctamente, `gold(settings())`. La primera llamada vuelve a aplicar OCR a todas las fotos ya guardadas en Bronce y reemplaza `precios` y `precios_rejected` en S3 y sus copias administradas en `workspace.equipo7`. Si no obtiene ningún precio válido, conserva los Delta anteriores. Oro siempre recalcula sus tres salidas a partir de Plata. No es necesario repetir Bronce para este reproceso. Como tarea Python también puede invocarse `pipelines/02_silver.py --reprocess`, seguida de `pipelines/03_gold.py`.
+
 El API actual ofrece `/health` y `/recomendacion` para el flujo local. La lectura de tablas Oro desde S3 por el Droplet, los endpoints adicionales del enunciado y la validación real del modelo siguen pendientes de la fase de despliegue. Las credenciales del Droplet deben estar solo en `api/.env`, con permisos `600` y acceso de solo lectura; nunca en Git.
 
 ## Documentación
