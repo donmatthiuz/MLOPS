@@ -102,7 +102,30 @@ Precios válidos por año (mín–máx, Q/galón, primera ejecución): 2023 Q30.
 
 **Idempotencia:** la escritura se ejecutó dos veces con los mismos datos y los conteos no cambiaron (139 / 159 / 110).
 
-**Exactitud medida a mano:** _pendiente — llenar `docs/plata/revision_manual.csv` (24 fotos de la muestra) y ejecutar la última celda de `plata_revision_manual.py`._
+**Exactitud medida a mano (2026-11-15).** Muestra de 24 fotos repartidas entre 2023, 2024, 2025 y 2026
+(`docs/plata/revision_manual.csv`). Se leyeron a ciegas (sin ver la salida del modelo) con
+`plata_revision_ciega2`, recortando cada visor a resolución completa; cuando la foto muestra el display de la bomba,
+el precio se confirmó con monto ÷ galones. Solo cuentan las 33 lecturas que se pudieron leer con seguridad
+(15 fotos); otras 19 quedaron como `dudosa` (visor deslavado, cortado o a medio refrescar) y no entran en el cálculo.
+
+| Métrica | Valor |
+|---|---|
+| Lecturas visibles con certeza | 33 |
+| Extraídas por Plata con el valor correcto | 13 |
+| Extraídas con valor incorrecto | 4 |
+| No extraídas (rechazadas o no leídas) | 16 |
+| **Cobertura** (correctas / visibles) | **39.4 %** |
+| **Precisión** (correctas / guardadas verificables) | **76.5 %** (13/17) |
+
+Errores encontrados:
+- `IMG_8271` (2026): el modelo corrió las etiquetas un lugar: guardó el diésel (35.59) como regular y la regular
+  (37.09) como súper. Pasó porque **las dos lecturas coincidieron en el mismo error**, así que el consenso no lo detecta.
+- `2025/IMG_6400` (diésel 25.69 → 25.64) e `IMG_7736` (diésel 26.19 → 26.17): error en el último dígito.
+- Probables, sin verdad confiable para contar: `2023/IMG_3388` súper 33.19 (el display da 33.79) y `2024/IMG_5181`
+  diésel 32.84 (el display de la súper da 32.89; posible etiqueta corrida).
+
+Conclusión: la doble lectura filtra mucho ruido, pero no los errores sistemáticos de etiqueta. Mejora propuesta: exigir
+que cada precio coincida con el display cuando la foto lo muestra, y validar el orden diésel < regular < súper.
 
 ### Observaciones para la revisión manual
 
