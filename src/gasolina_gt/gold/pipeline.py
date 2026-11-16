@@ -1,0 +1,93 @@
+"""Cálculo de la capa Oro en pandas, sin Spark."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable, Optional
+
+import pandas as pd
+
+from .features import COLUMNAS_FEATURES, construir_features
+from .modeling import ResultadoModelo, contar_triples, entrenar_y_evaluar
+from .params import GoldParams
+from .predictions import combinar_predicciones
+from .schemas import ordenar
+from .weekly import precio_semanal, variacion_semanal, wti_semanal
+
+Tracker = Callable[[dict, dict, object], Optional[str]]
+
+
+@dataclass
+class GoldResult:
+    precio_semanal: pd.DataFrame
+    variacion_semanal: pd.DataFrame
+    features_modelo: pd.DataFrame
+    predicciones: pd.DataFrame
+    metricas_modelo: pd.DataFrame
+    resultado: ResultadoModelo
+
+
+def _metricas(r: ResultadoModelo) -> dict:
+    m, b = r.metricas_modelo or {}, r.metricas_linea_base or {}
+    return {"accuracy_modelo": m.get("accuracy"), "f1_macro_modelo": m.get("f1_macro"),
+            "accuracy_linea_base": b.get("accuracy"), "f1_macro_linea_base": b.get("f1_macro"),
+            "cv_f1_regresion_logistica": r.cv_f1.get("regresion_logistica"),
+            "cv_f1_arbol_decision": r.cv_f1.get("arbol_decision"),
+            "n_ejemplos": r.n_ejemplos, "n_train": r.n_train, "n_test": r.n_test}
+
+
+def _parametros(params: GoldParams, r: ResultadoModelo, usa_wti: bool) -> dict:
+    return {"umbral_q": params.umbral_q, "semanas_test": params.semanas_test, "usar_wti": usa_wti,
+            "min_ejemplos": params.min_ejemplos, "min_train": params.min_train, "semilla": params.semilla,
+            "features": COLUMNAS_FEATURES, "candidato": r.candidato or "ninguno",
+            "modelo_elegido": r.modelo_elegido, "modo_pocos_datos": r.modo_pocos_datos,
+            "hiperparametros": r.hiperparametros, "motivo": r.motivo}
+
+
+def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params: GoldParams, *,
+                 previas: Optional[pd.DataFrame] = None, generado_en=None, tracker: Optional[Tracker] = None,
+                 log: Callable[[str], None] = print) -> GoldResult:
+    """silver: fecha, combustible, precio_q_galon. wti_crudo (opcional): observation_date, DCOILWTICO."""
+    generado_en = pd.Timestamp.now("UTC").tz_localize(None) if generado_en is None else generado_en
+
+    semanal = precio_semanal(silver)
+    variacion = variacion_semanal(semanal, params.umbral_q)
+    usa_wti = bool(params.usar_wti and wti_crudo is not None and len(wti_crudo))
+    wti = wti_semanal(wti_crudo) if usa_wti else None
+    features = construir_features(variacion, wti)
+
+    triples = contar_triples(features)
+    log("Oro: ejemplos válidos (triples t-1, t, t+1) por combustible: "
+        + ", ".join(f"{c}={n}" for c, n in triples.items()) + f"; total={sum(triples.values())}")
+
+    r = entrenar_y_evaluar(features, params)
+    log(f"Oro: {r.motivo}")
+
+    reales = variacion.loc[variacion["direccion"].notna(), ["semana", "combustible", "direccion"]]
+    predicciones = combinar_predicciones(previas, pd.concat([r.backtest, r.pronostico], ignore_index=True),
+                                         reales, generado_en)
+
+    run_id = None
+    if tracker is not None:
+        run_id = tracker(_parametros(params, r, usa_wti), _metricas(r), None if r.usa_linea_base else r.modelo_ajustado)
+
+    m = _metricas(r)
+    fila = {
+        "run_id_mlflow": run_id, "modelo_elegido": r.modelo_elegido, "usa_linea_base": r.usa_linea_base,
+        "modo_pocos_datos": r.modo_pocos_datos, "motivo": r.motivo, "candidato": r.candidato,
+        "validado_en_train": r.validado_en_train, **{k: m[k] for k in (
+            "cv_f1_regresion_logistica", "cv_f1_arbol_decision", "n_ejemplos", "n_train", "n_test",
+            "accuracy_modelo", "f1_macro_modelo", "accuracy_linea_base", "f1_macro_linea_base")},
+        "semana_train_inicio": r.semana_train[0], "semana_train_fin": r.semana_train[1],
+        "semana_test_inicio": r.semana_test[0], "semana_test_fin": r.semana_test[1],
+        "umbral_q": params.umbral_q, "semanas_test": params.semanas_test, "usa_wti": usa_wti,
+        "_generado_en": generado_en,
+    }
+    estampar = lambda df: df.assign(_generado_en=generado_en)  # noqa: E731
+    return GoldResult(
+        precio_semanal=ordenar(estampar(semanal), "precio_semanal"),
+        variacion_semanal=ordenar(estampar(variacion), "variacion_semanal"),
+        features_modelo=ordenar(estampar(features), "features_modelo"),
+        predicciones=ordenar(predicciones, "predicciones"),
+        metricas_modelo=ordenar(pd.DataFrame([fila]), "metricas_modelo"),
+        resultado=r,
+    )
