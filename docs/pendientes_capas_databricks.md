@@ -8,7 +8,7 @@ Estado observado el 15 de noviembre de 2026. Referencia: [enunciado del proyecto
 | --- | --- | --- |
 | Bronce | Lee `img/`, guarda fotos y metadatos en Delta y registra la tabla en `workspace.equipo7`. Se comprobaron 110 fotos únicas. | No hay un cambio esencial pendiente en la lógica de la capa. |
 | Plata | Usa el OCR del proyecto local, aplica reglas de calidad y deduplicación, guarda precios y rechazos en Delta y registra las tablas. Se observaron 139 lecturas válidas y 159 rechazos; las 110 fotos quedaron contabilizadas. | Medición manual de calidad, desglose de rechazos en el notebook, extracción de modalidad/ubicación y prueba del reproceso completo. |
-| Oro | Genera y registra `precio_semanal`, `variacion_semanal` y `features_modelo`. Se observaron 125 filas en cada tabla. | Corregir comparaciones entre semanas, entrenar y evaluar el clasificador, registrar MLflow, crear `predicciones` y documentar tablas/columnas. |
+| Oro | Genera y registra `precio_semanal`, `variacion_semanal` y `features_modelo`. Se observaron 125 filas en cada tabla (antes de los cambios de abajo). | Código listo y probado localmente: variación contra la semana calendario anterior, clasificador con línea base, MLflow, `gold_predicciones`, `gold_metricas_modelo` y `COMMENT`. Falta ejecutarlo en Databricks y reunir la evidencia. |
 
 ## Pendientes por capa
 
@@ -27,11 +27,17 @@ Estado observado el 15 de noviembre de 2026. Referencia: [enunciado del proyecto
 
 ### Oro
 
-- [ ] Calcular `variacion_semanal` solo contra la **semana calendario anterior**. Actualmente `lag` toma la observación anterior aunque hayan pasado meses. En los datos observados hay 9 pares consecutivos para diésel, 6 para regular y 18 para súper; esto limita los ejemplos válidos para el modelo.
-- [ ] Definir el objetivo **dirección de la semana siguiente** y entrenar un clasificador por combustible o una estrategia equivalente. Separar entrenamiento y prueba por tiempo y compararlo con la línea base «se repite la dirección anterior».
-- [ ] Registrar parámetros, métricas y modelo elegido en MLflow de Databricks.
-- [ ] Crear `gold.predicciones` con combustible, semana, dirección predicha, probabilidad y dirección real cuando esté disponible.
-- [ ] Añadir comentarios a cada tabla y columna Oro en Unity Catalog.
+Implementado y probado localmente (`pytest`, datos sintéticos solo en `tests/`); **falta ejecutarlo en Databricks y guardar la evidencia**. Ver [docs/oro](oro/README.md) y el [contrato para la API](oro/contrato_api.md).
+
+- [x] Calcular `variacion_semanal` solo contra la **semana calendario anterior** (semana − 7 días); sin esa semana, la variación queda nula y `semana_anterior_disponible = false`. Los rezagos de `features_modelo` siguen la misma regla.
+- [x] Umbral de dirección parametrizable (por defecto ±Q0.10), junto con semanas de test, experimento de MLflow y uso del WTI (widgets → CLI → entorno).
+- [x] Definir el objetivo **dirección de la semana siguiente** y entrenar un clasificador (regresión logística o árbol, modelo global con el combustible como variable) con validación temporal y comparación contra la línea base «se repite la dirección anterior». Modo «pocos datos» sin fallar.
+- [x] Registrar parámetros, métricas y modelo elegido en MLflow (con reporte local en `reports/` si MLflow no está disponible).
+- [x] Crear `gold_predicciones` (`pronostico` y `backtest`, `MERGE` idempotente que rellena `direccion_real`) y `gold_metricas_modelo`.
+- [x] Añadir comentarios a cada tabla y columna Oro en Unity Catalog (se reaplican después de cada `CREATE OR REPLACE`).
+- [x] Variable WTI desde `bronze_petroleo_wti` (opcional).
+- [ ] Ejecutar Oro en Databricks (serverless): comprobar que `scikit-learn` y `mlflow` están disponibles, que `log_model` funciona y que los `COMMENT` se aplican. Ver el conteo real de ejemplos por combustible.
+- [ ] Guardar la evidencia (capturas de tablas, experimento MLflow y dos ejecuciones) listada en [docs/oro](oro/README.md#evidencia-pendiente).
 
 ## Código local que aún no se integra al flujo Databricks
 
