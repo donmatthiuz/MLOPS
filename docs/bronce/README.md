@@ -18,12 +18,19 @@ Código: [`pipelines/01_bronze.py`](../../pipelines/01_bronze.py) → `bronze()`
 - `MERGE` por `path` en lugar de Auto Loader: es más simple, cumple el criterio y no requiere un checkpoint. Una foto reemplazada con la misma ruta **no** se vuelve a cargar.
 - WTI y no el histórico del MEM: FRED ofrece un CSV estable sin llave de API. El MEM publica PDFs sin una URL fija.
 
-## Para Oro (pendiente de otro integrante)
+## Uso en Oro
 
-`bronze_petroleo_wti` es texto crudo. En Oro hay que convertirlo con `CAST(DCOILWTICO AS DOUBLE)` (los días sin dato vienen vacíos) y promediarlo por semana de martes a lunes para usarlo como variable.
+Oro ya lee `bronze_petroleo_wti` (`src/gasolina_gt/gold/weekly.py`): la convierte a número y la promedia por semana para las variables `wti_semanal` y `wti_variacion`.
 
-## Evidencia pendiente
+## Evidencia (16/11/2026, serverless, notebook PROYECTO, Git folder en `4e37a63`)
 
-- [ ] Captura de dos ejecuciones de Bronce: la segunda con `0 nuevas`.
-- [ ] Captura de `SELECT count(*) FROM workspace.equipo7.bronze_fotos_precios` comparado con el número de fotos en `img/`.
-- [ ] Captura de `bronze_petroleo_wti`. Requiere que el cluster tenga salida a internet.
+![Bronce en Databricks](evidencia_bronce_databricks.jpg)
+
+```
+Bronce: 110 fotos en la carpeta, 110 filas en la tabla, 0 nuevas en esta carga
+Bronce WTI: 10660 días en s3://cc3105-cusn-869227452861-us-east-2-an/equipo7/fuentes/wti/2026-11-16.csv
+```
+
+Esta fue una recarga sobre una tabla que ya existía: entraron 0 fotos nuevas y la verificación no encontró faltantes ni duplicados. Con eso se cumple el criterio «una segunda carga no duplica fotos».
+
+- [ ] Ejecución dentro del Job (fase 4, la configura otro integrante).
