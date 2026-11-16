@@ -207,33 +207,88 @@ def silver(cfg: dict, *, reprocess: bool = False) -> None:
     print(f"Plata {mode}: {len(accepted)} lecturas válidas, {len(rejected)} rechazadas en esta ejecución")
 
 
-def gold(cfg: dict) -> None:
+def _read_wti(spark, cfg: dict):
+    """WTI de Bronce en pandas, o None si no existe. TRY_CAST: en serverless (ANSI) CAST('') falla."""
+    table = _table(cfg, "bronze", "petroleo_wti")
+    if not spark.catalog.tableExists(table):
+        print(f"Oro: no existe {table}; se continúa sin la variable WTI")
+        return None
+    return spark.sql(f"SELECT observation_date, TRY_CAST(NULLIF(TRIM(DCOILWTICO), '') AS DOUBLE) AS DCOILWTICO FROM {table}").toPandas()
+
+
+def _apply_gold_comments(spark, cfg: dict, name: str) -> None:
+    """COMMENT de la tabla y sus columnas; se reaplica tras cada CREATE OR REPLACE."""
+    from gasolina_gt.gold.comments import sentencias_comentarios
+
+    for statement in sentencias_comentarios(_table(cfg, "gold", name), name):
+        try:
+            spark.sql(statement)
+        except Exception as exc:
+            print(f"Oro: no se pudo aplicar el comentario ({exc}): {statement[:90]}")
+
+
+def _write_gold_table(spark, cfg: dict, name: str, frame, *, mode: str = "overwrite") -> None:
+    from gasolina_gt.gold.schemas import ddl, registros
+
+    df = spark.createDataFrame(registros(frame, name), ddl(name))
+    writer = df.write.format("delta").mode(mode)
+    writer = writer.option("mergeSchema", "true") if mode == "append" else writer.option("overwriteSchema", "true")
+    writer.save(_path(cfg, "gold", name))
+
+
+def _merge_predictions(spark, cfg: dict, frame) -> None:
+    """MERGE por (semana, combustible, tipo); `frame` ya trae la tabla combinada."""
     from delta.tables import DeltaTable
-    from pyspark.sql import Window, functions as F
+    from gasolina_gt.gold.schemas import ddl, registros
+
+    path = _path(cfg, "gold", "predicciones")
+    source = spark.createDataFrame(registros(frame, "predicciones"), ddl("predicciones"))
+    if not DeltaTable.isDeltaTable(spark, path):
+        source.write.format("delta").mode("overwrite").save(path)
+        return
+    (DeltaTable.forPath(spark, path).alias("t")
+     .merge(source.alias("s"), "t.semana = s.semana AND t.combustible = s.combustible AND t.tipo = s.tipo")
+     .whenMatchedUpdateAll().whenNotMatchedInsertAll().execute())
+
+
+def gold(cfg: dict, params=None) -> None:
+    """Oro: lee Plata, calcula con gasolina_gt.gold, escribe, sincroniza y comenta las tablas."""
+    import sys
+    from functools import partial
+
+    import pandas as pd
+    from delta.tables import DeltaTable
+    from gasolina_gt.config import resolve_path
+    from gasolina_gt.gold.params import resolver_parametros, widgets_databricks
+    from gasolina_gt.gold.pipeline import compute_gold
+    from gasolina_gt.gold.tracking import registrar_experimento
 
     spark = _spark()
     _ensure_layer_dir(spark, cfg, "gold")
     silver_path = _path(cfg, "silver", "precios")
     if not DeltaTable.isDeltaTable(spark, silver_path):
         raise RuntimeError("Primero ejecute 02_silver.py y obtenga al menos una lectura válida")
-    prices = spark.read.format("delta").load(silver_path)
-    weekly = (prices.withColumn("semana", F.date_sub(F.next_day("fecha", "Tue"), 7))
-              .groupBy("semana", "combustible")
-              .agg(F.avg("precio_q_galon").alias("precio_promedio"),
-                   F.min("precio_q_galon").alias("precio_minimo"),
-                   F.max("precio_q_galon").alias("precio_maximo")))
-    window = Window.partitionBy("combustible").orderBy("semana")
-    variations = (weekly.withColumn("precio_anterior", F.lag("precio_promedio").over(window))
-                  .withColumn("diferencia_q", F.col("precio_promedio") - F.col("precio_anterior"))
-                  .withColumn("diferencia_pct", F.col("diferencia_q") / F.col("precio_anterior") * 100)
-                  .withColumn("direccion", F.when(F.col("diferencia_q") > 0.10, "sube")
-                              .when(F.col("diferencia_q") < -0.10, "baja").otherwise("se_mantiene")))
-    features = variations
-    for lag in range(1, 5):
-        features = features.withColumn(f"variacion_lag_{lag}", F.lag("diferencia_q", lag).over(window))
-    features = features.withColumn("promedio_movil_4", F.avg("precio_promedio").over(window.rowsBetween(-3, 0)))
-    for name, frame in (("precio_semanal", weekly), ("variacion_semanal", variations), ("features_modelo", features)):
-        path = _path(cfg, "gold", name)
-        frame.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(path)
+    params = params or resolver_parametros(widgets_databricks(), sys.argv[1:])
+    print(f"Oro: parámetros {params}")
+
+    prices = spark.read.format("delta").load(silver_path).select("fecha", "combustible", "precio_q_galon").toPandas()
+    wti = _read_wti(spark, cfg) if params.usar_wti else None
+    predictions_path = _path(cfg, "gold", "predicciones")
+    previous = (spark.read.format("delta").load(predictions_path).toPandas()
+                if DeltaTable.isDeltaTable(spark, predictions_path) else None)
+    reports = cfg.get("paths", {}).get("reports")
+    tracker = partial(registrar_experimento, experimento=params.experimento_mlflow,
+                      reports_dir=resolve_path(reports) if reports else None)
+
+    result = compute_gold(prices, wti, params, previas=previous, tracker=tracker)
+
+    for name in ("precio_semanal", "variacion_semanal", "features_modelo"):
+        _write_gold_table(spark, cfg, name, getattr(result, name))
+    _merge_predictions(spark, cfg, result.predicciones)
+    _write_gold_table(spark, cfg, "metricas_modelo", result.metricas_modelo, mode="append")
+    for name in ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo"):
         _sync_managed_table(spark, cfg, "gold", name)
-    print("Oro: precio_semanal, variacion_semanal y features_modelo actualizados")
+        _apply_gold_comments(spark, cfg, name)
+    metrics = result.metricas_modelo.iloc[0]
+    print(f"Oro: modelo {metrics.modelo_elegido} (pocos datos: {bool(metrics.modo_pocos_datos)}), "
+          f"{len(result.predicciones)} predicciones, run MLflow: {metrics.run_id_mlflow}")
