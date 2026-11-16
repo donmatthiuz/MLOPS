@@ -16,6 +16,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["httpx>=0.27", "pytest>=8"]
 
+databricks = ["mlflow>=2.10"]
+
 [project.scripts]
 gasolina-gt = "gasolina_gt.cli:main"
 
