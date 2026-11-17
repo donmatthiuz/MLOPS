@@ -9,8 +9,15 @@ build/
 dist/
 *.egg-info/
 .git/
+.aws/
+.agents/
+.codex/
+.skills/
 .env
 **/.env
 datos/
 docs/
 presentacion/
+pipelines/
+src/
+tests/

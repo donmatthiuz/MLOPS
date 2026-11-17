@@ -1,6 +1,6 @@
 # Contrato Oro → API
 
-Para Josué. La API lee **solo** estas tablas, en Delta, desde `s3://bucket-oro/equipo7/<nombre>` con credenciales de solo lectura (`deltalake`, DuckDB o Polars). Las mismas tablas existen en Databricks como `workspace.equipo7.gold_<nombre>`.
+La API de `api/app/main.py` lee **solo** estas tablas, en Delta, desde `s3://bucket-oro/equipo7/<nombre>` con credenciales de solo lectura mediante `deltalake`. Las mismas tablas existen en Databricks como `workspace.equipo7.gold_<nombre>`.
 
 Reglas generales:
 
@@ -89,6 +89,8 @@ Con pocos datos, `n_train = 0` y la línea base se mide sobre todos los ejemplos
 
 ## Consulta de cada endpoint
 
+`GET /health` comprueba que se puede abrir `precio_semanal` en S3. Devuelve 503 si falla. `GET /precios/actual` devuelve una lista, una fila por combustible. `GET /precios` acepta `limit` (1 a 500, predeterminado 100) y `offset` (desde 0); devuelve primero las semanas más recientes. Todos los campos nulos se serializan como `null`.
+
 SQL de referencia (DuckDB/Polars con `delta_scan`; en Databricks se usa el nombre `workspace.equipo7.gold_<tabla>`).
 
 **`GET /precios/actual`**: último precio por combustible.
@@ -107,8 +109,8 @@ SELECT v.semana, v.combustible, v.precio_promedio, v.precio_minimo, v.precio_max
 FROM variacion_semanal v
 WHERE (:combustible IS NULL OR v.combustible = :combustible)
   AND (:desde IS NULL OR v.semana >= :desde) AND (:hasta IS NULL OR v.semana <= :hasta)
-ORDER BY v.semana, v.combustible
-LIMIT :limit;
+ORDER BY v.semana DESC, v.combustible DESC
+LIMIT :limit OFFSET :offset;
 ```
 
 **`GET /prediccion?combustible=super`**: pronóstico más reciente.

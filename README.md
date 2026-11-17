@@ -22,17 +22,11 @@ python -m venv .venv
 .venv/bin/python pipelines/02_silver.py
 .venv/bin/python pipelines/03_gold.py
 .venv/bin/gasolina-gt train --combustible regular
-.venv/bin/uvicorn api.app.main:app --reload
 ```
 
 `DATA_SOURCE=local` lee las fotos de `LOCAL_DATA_DIR`. Los archivos generados se guardan en `LOCAL_BRONZE_DIR`, `LOCAL_SILVER_DIR`, `LOCAL_GOLD_DIR`, `LOCAL_MODELS_DIR` y `LOCAL_REPORTS_DIR`. Todas estas rutas se pueden cambiar en `.env`; las relativas se resuelven desde la raíz del repositorio. La calibración OCR viaja con el paquete y no depende de la carpeta de fotos. El Gold local actual incluye una serie **sintética** para poder probar el modelo con pocas fotos; sus resultados no son validación con datos reales.
 
-```bash
-docker compose up --build
-# API local: http://localhost:8000/health
-```
-
-Compose monta `LOCAL_DATA_DIR` en solo lectura dentro del contenedor. El Dockerfile está en `api/` para seguir la estructura de entrega.
+El `compose.yaml` de la raíz despliega la API del Droplet y requiere `api/.env`; el flujo local de OCR y entrenamiento se ejecuta con los comandos anteriores.
 
 ## Databricks
 
@@ -58,7 +52,27 @@ Plata usa el notebook de visión `02_silver.py`; **no use `databricks_layers.sil
 
 En `pipelines/02_silver.py`, use el widget `modo=incremental` para fotos nuevas, `modo=reaplicar_reglas` para recalcular Plata desde las extracciones ya guardadas, o `modo=reprocesar_todo` para volver a enviar todas las fotos al modelo de visión. Después ejecute `pipelines/03_gold.py`. No hace falta repetir Bronce si las imágenes no cambiaron. El Job normal usa `incremental` y recalcula Oro en cada ejecución.
 
-El API actual ofrece `/health` y `/recomendacion` para el flujo local. La lectura de tablas Oro desde S3 por el Droplet, los endpoints adicionales del enunciado y la validación real del modelo siguen pendientes de la fase de despliegue. Las credenciales del Droplet deben estar solo en `api/.env`, con permisos `600` y acceso de solo lectura; nunca en Git.
+## API en DigitalOcean
+
+La API FastAPI lee directamente los Delta del prefijo Oro en S3 con `deltalake`. Docker aísla sus dependencias y `restart: unless-stopped` la mantiene en marcha al cerrar SSH. El contenedor solo consulta S3; no escribe tablas ni necesita acceso a Bronce o Plata. El `.env` del servidor, excluido de Git, contiene únicamente `GOLD_OUTPUT_URI` y `API_PORT`; `api/.env.example` es la plantilla. El puerto externo predeterminado es `8007`; ajuste `API_PORT` si el curso asignó otro `80XX`.
+
+En el Droplet, dentro de `/home/equipo-07/`:
+
+```bash
+git clone -b proyecto1 https://github.com/donmatthiuz/MLOPS.git
+cd MLOPS
+cp api/.env.example api/.env
+chmod 600 api/.env
+# Editar api/.env: GOLD_OUTPUT_URI y API_PORT.
+docker compose --env-file api/.env up -d --build
+docker compose --env-file api/.env ps
+```
+
+Si el repositorio ya está clonado, use `git pull` desde la rama `proyecto1` y repita `docker compose --env-file api/.env up -d --build`. El `.env` se conserva en el servidor y no se copia a la imagen. `--env-file` permite que Compose lea `API_PORT`; `env_file` pasa `GOLD_OUTPUT_URI` al contenedor. La región S3 `us-east-2` se configura en Compose. El compañero que despliegue debe verificar cómo recibe el contenedor el acceso de solo lectura a S3: el acceso configurado para el usuario Linux del Droplet no se hereda automáticamente. Para ver un fallo: `docker compose --env-file api/.env logs --tail=100 api`.
+
+Endpoints: `GET /health`, `/precios/actual`, `/precios?combustible=super&desde=2026-10-01&hasta=2026-11-30&limit=100&offset=0`, `/prediccion?combustible=super`, `/modelo/metricas` y Swagger en `/docs`. `/health` responde 503 si no puede abrir Oro. Los demás endpoints devuelven 503 si S3 no está disponible; los pronósticos o métricas ausentes devuelven 404. La API muestra `probabilidad: null` cuando Oro usa la línea base. Las predicciones conservan la fecha de la última semana disponible para cada combustible; no se presentan como actuales si faltan fotos nuevas.
+
+Desde otra computadora, pruebe `API_URL=http://<ip>:<puerto> sh tests/consultas_api.sh`. El despliegue real y el acceso HTTP externo aún deben comprobarse en el Droplet.
 
 ## Documentación
 
@@ -72,6 +86,4 @@ El API actual ofrece `/health` y `/recomendacion` para el flujo local. La lectur
 
 ```bash
 .venv/bin/python -m pytest -q
-# o
- docker compose run --rm tests
 ```

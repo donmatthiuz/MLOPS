@@ -1,55 +1,27 @@
-name: gasolina-gt
-
-x-app: &app
-  build:
-    context: .
-    dockerfile: api/Dockerfile
-    target: production
-  environment:
-    DATA_SOURCE: local
-    LOCAL_DATA_DIR: /app/datos
-    LOCAL_BRONZE_DIR: /app/datos_procesados/bronze
-    LOCAL_SILVER_DIR: /app/datos_procesados/silver
-    LOCAL_GOLD_DIR: /app/datos_procesados/gold
-    LOCAL_MODELS_DIR: /app/models
-    LOCAL_REPORTS_DIR: /app/reports
-  volumes:
-    - ${LOCAL_DATA_DIR:-./datos}:/app/datos:ro
-    - processed_data:/app/datos_procesados
-    - models:/app/models
-    - reports:/app/reports
+name: equipo07-gasolina-api
 
 services:
-  bootstrap:
-    <<: *app
-    command: sh -c "gasolina-gt build-data && gasolina-gt train --combustible regular"
-    restart: "no"
-
   api:
-    <<: *app
-    depends_on:
-      bootstrap:
-        condition: service_completed_successfully
-    command: uvicorn api.app.main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "${API_PORT:-8000}:8000"
-    restart: unless-stopped
-
-  tests:
-    <<: *app
     build:
       context: .
       dockerfile: api/Dockerfile
-      target: test
-    profiles: ["test"]
-    command: pytest -q
-
-  cli:
-    <<: *app
-    profiles: ["tools"]
-    entrypoint: ["gasolina-gt"]
-
-volumes:
-  processed_data:
-  models:
-  reports:
+    env_file:
+      - ./api/.env
+    environment:
+      AWS_REGION: us-east-2
+    ports:
+      - "${API_PORT:-8007}:8000"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=10)"]
+      interval: 1m
+      timeout: 15s
+      retries: 3
+      start_period: 30s

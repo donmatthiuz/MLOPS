@@ -46,13 +46,15 @@ Implementado y probado localmente (`pytest`, datos sintéticos solo en `tests/`)
 - [`src/gasolina_gt/data/features.py`](../src/gasolina_gt/data/features.py): calcula variables y objetivos de precio/tendencia a 1, 2 y 4 semanas para el flujo local. Oro en Databricks ya tiene su propia ingeniería de variables y el objetivo `direccion_siguiente`, con semanas calendario consecutivas.
 - [`src/gasolina_gt/modeling/training.py`](../src/gasolina_gt/modeling/training.py): entrena un **regresor de precio** XGBoost, busca hiperparámetros, separa un test temporal y guarda archivos `joblib`. Puede orientar la validación temporal, pero **no sustituye** al clasificador de dirección solicitado para Oro.
 - [`src/gasolina_gt/evaluation/metrics.py`](../src/gasolina_gt/evaluation/metrics.py): compara el regresor de precio con un baseline de persistencia y genera un reporte local. Oro en Databricks ya implementa una evaluación temporal separada para el clasificador cuando haya ejemplos suficientes.
-- [`src/gasolina_gt/serving/recommendation.py`](../src/gasolina_gt/serving/recommendation.py): genera recomendaciones con el modelo local. Falta conectar el servicio/API al resultado de Oro en Databricks una vez que existan predicciones.
+- [`src/gasolina_gt/serving/recommendation.py`](../src/gasolina_gt/serving/recommendation.py): genera recomendaciones con el modelo local. La API de producción es independiente y consulta directamente los Delta de Oro en S3.
 - [`src/gasolina_gt/data/pipeline.py`](../src/gasolina_gt/data/pipeline.py): construye un dataset local con historia sintética. Es útil para desarrollo; los datos sintéticos no deben presentarse como evidencia de validación temporal sobre precios reales del pipeline Databricks.
 
 El OCR local de siete segmentos ya no es la ruta de producción de Plata: el notebook de Databricks usa un modelo de visión. `databricks_layers.silver()` está deshabilitada para proteger esas tablas.
 
 ## Pendientes generales para la entrega
 
-- [ ] Terminar de configurar en Databricks el Job `equipo-07-pipeline`, agregar correo de fallo, activar la programación después del primer `Run now` correcto y exportar su definición a `pipelines/job.json`. Ver [guía](databricks_job.md).
+- [x] Configurar en Databricks el Job `equipo-07-pipeline`, correo de fallo y programación semanal; el primer `Run now` terminó correctamente. Ver [guía](databricks_job.md).
+- [ ] Exportar la definición real del Job a `pipelines/job.json` y revisar sus valores antes de subirla.
 - [ ] Verificar dos ejecuciones exitosas con fotos de semanas distintas y conservar evidencia de duración e historial.
-- [ ] Completar la API que publica precios y predicciones desde Oro y la documentación/evidencia pedida por el enunciado.
+- [x] Implementar la API FastAPI y Docker para leer precios, pronósticos y métricas desde Oro en S3.
+- [ ] Desplegar la API en el Droplet, añadir `api/.env` solo allí y comprobar los endpoints desde una computadora externa.
