@@ -23,7 +23,8 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -q pillow-heif openai
+# MAGIC %md
+# MAGIC Dependencias (`pillow-heif`, `openai`) definidas en el entorno serverless del Job.
 
 # COMMAND ----------
 
@@ -347,7 +348,7 @@ if P["escribir"] == "si":
 
 # COMMAND ----------
 
-# Resumen para quien llame este notebook (databricks_layers.silver o el Job). Va en su propia celda porque
+# Resumen para quien llame este notebook como tarea del Job. Va en su propia celda porque
 # dbutils.notebook.exit oculta la salida de la celda donde se ejecuta.
 dbutils.notebook.exit(json.dumps({"modo": P["modo"], "aceptadas": len(aceptadas), "rechazadas": len(rechazadas),
                                   "fotos_enviadas_al_modelo": len(pendientes)}))

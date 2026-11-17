@@ -134,8 +134,7 @@ que cada precio coincida con el display cuando la foto lo muestra, y validar el 
 
 ## Coordinación con el equipo
 
-- **No ejecutar `databricks_layers.silver()`**: escribe en las mismas rutas de Plata con el OCR de 7 segmentos (calibrado para
-  un solo dispensador). En particular, `silver(settings(), reprocess=True)` reemplazaría los precios del modelo de visión.
-  Propuesta para el responsable de `databricks_layers.py`: que `silver()` ejecute el notebook `02_silver`, o retirarla.
+- **No ejecutar `databricks_layers.silver()`**: ahora se detiene con un mensaje que dirige a este notebook. Así el OCR
+  antiguo no puede sobrescribir las tablas del modelo de visión.
 - Oro lee `s3://…ag/equipo7/precios`; `precio_q_galon` es `DECIMAL(6,2)`. **Hay que volver a ejecutar Oro** después del
   `reaplicar_reglas` (las tablas Oro se calcularon con 139 precios).

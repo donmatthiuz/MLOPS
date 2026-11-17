@@ -5,11 +5,7 @@ Unity Catalog. No se usan llaves AWS en el pipeline.
 """
 from __future__ import annotations
 
-import re
-import tempfile
-from datetime import date, datetime
-from pathlib import Path
-from urllib.parse import urlparse
+from datetime import date
 
 
 def _spark():
@@ -116,95 +112,15 @@ def _bronze_wti(spark, cfg: dict) -> None:
     print(f"Bronce WTI: {spark.read.format('delta').load(_path(cfg, 'bronze', 'petroleo_wti')).count()} días en {raw}")
 
 
-def _photo_date(path: str, modification_time) -> date:
-    match = re.search(r"/(\d{4}-\d{2}-\d{2})/", path)
-    if match:
-        return date.fromisoformat(match.group(1))
-    return modification_time.date()
-
-
 def silver(cfg: dict, *, reprocess: bool = False) -> None:
-    from delta.tables import DeltaTable
-    from pyspark.sql import types as T
-    from gasolina_gt.extraction.extractor import ExtractorPrecios
-    from gasolina_gt.extraction.heic_loader import cargar_imagen_generica
+    """Evita que el OCR antiguo sobrescriba las tablas del notebook de visión."""
+    mode = "reprocesar_todo" if reprocess else "incremental"
+    raise RuntimeError(
+        "Plata se ejecuta como notebook pipelines/02_silver.py "
+        f"con el widget modo={mode}; después ejecute Oro. "
+        "databricks_layers.silver() ya no escribe en las tablas compartidas."
+    )
 
-    spark = _spark()
-    _ensure_layer_dir(spark, cfg, "silver")
-    bronze_path = _path(cfg, "bronze", "fotos_precios")
-    if not DeltaTable.isDeltaTable(spark, bronze_path):
-        raise RuntimeError("Primero ejecute 01_bronze.py")
-    silver_path = _path(cfg, "silver", "precios")
-    rejected_path = _path(cfg, "silver", "precios_rejected")
-    processed = set()
-    if not reprocess:
-        for path in (silver_path, rejected_path):
-            if DeltaTable.isDeltaTable(spark, path):
-                processed.update(row.foto_origen for row in spark.read.format("delta").load(path).select("foto_origen").distinct().toLocalIterator())
-    extractor = ExtractorPrecios(cfg)
-    accepted, rejected = [], []
-    for row in spark.read.format("delta").load(bronze_path).toLocalIterator():
-        if row.path in processed:
-            continue
-        suffix = Path(urlparse(row.path).path).suffix.lower()
-        with tempfile.TemporaryDirectory() as tmp:
-            local_path = Path(tmp) / (Path(urlparse(row.path).path).name or f"foto{suffix}")
-            local_path.write_bytes(bytes(row.content))
-            try:
-                record = extractor.extraer_de_imagen(cargar_imagen_generica(local_path))
-            except Exception as exc:
-                rejected.append((row.path, None, f"imagen_no_procesable: {exc}", datetime.utcnow()))
-                continue
-        fecha = _photo_date(row.path, row.modificationTime)
-        if record.capturada_en:
-            fecha = datetime.fromisoformat(record.capturada_en).date()
-        for reading in record.lecturas:
-            reason = reading.motivo_invalido
-            if fecha > date.today():
-                reason = "fecha_futura"
-            elif reading.tipo_combustible not in {"super", "regular", "diesel"}:
-                reason = "combustible_fuera_catalogo"
-            elif reading.precio_gtq_por_galon is None or not 10 <= reading.precio_gtq_por_galon <= 80:
-                reason = reason or "precio_fuera_rango"
-            if reason:
-                rejected.append((row.path, reading.tipo_combustible, reason, datetime.utcnow()))
-            else:
-                accepted.append((fecha, reading.tipo_combustible, float(reading.precio_gtq_por_galon),
-                                 "no_especificada", "desconocida", row.path, datetime.utcnow()))
-    price_schema = T.StructType([
-        T.StructField("fecha", T.DateType()), T.StructField("combustible", T.StringType()),
-        T.StructField("precio_q_galon", T.DoubleType()), T.StructField("modalidad", T.StringType()),
-        T.StructField("ubicacion", T.StringType()), T.StructField("foto_origen", T.StringType()),
-        T.StructField("_processed_timestamp", T.TimestampType()),
-    ])
-    reject_schema = T.StructType([
-        T.StructField("foto_origen", T.StringType()), T.StructField("combustible", T.StringType()),
-        T.StructField("motivo", T.StringType()), T.StructField("_processed_timestamp", T.TimestampType()),
-    ])
-    if reprocess and not accepted:
-        raise RuntimeError("El reproceso no produjo precios válidos; se conservaron las tablas Plata anteriores")
-    for rows, schema, path, layer_name, condition in (
-        (accepted, price_schema, silver_path, "precios", "t.fecha = s.fecha AND t.ubicacion = s.ubicacion AND t.combustible = s.combustible AND t.modalidad = s.modalidad"),
-        (rejected, reject_schema, rejected_path, "precios_rejected", "t.foto_origen = s.foto_origen AND t.combustible <=> s.combustible AND t.motivo = s.motivo"),
-    ):
-        if not rows and not reprocess:
-            continue
-        incoming = spark.createDataFrame(rows, schema)
-        if layer_name == "precios":
-            incoming = incoming.dropDuplicates(["fecha", "ubicacion", "combustible", "modalidad"])
-        else:
-            incoming = incoming.dropDuplicates(["foto_origen", "combustible", "motivo"])
-        if reprocess:
-            incoming.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(path)
-        elif DeltaTable.isDeltaTable(spark, path):
-            DeltaTable.forPath(spark, path).alias("t").merge(incoming.alias("s"), condition).whenNotMatchedInsertAll().execute()
-        else:
-            incoming.write.format("delta").mode("overwrite").save(path)
-    for layer_name, path in (("precios", silver_path), ("precios_rejected", rejected_path)):
-        if DeltaTable.isDeltaTable(spark, path):
-            _sync_managed_table(spark, cfg, "silver", layer_name)
-    mode = "reprocesada" if reprocess else "incremental"
-    print(f"Plata {mode}: {len(accepted)} lecturas válidas, {len(rejected)} rechazadas en esta ejecución")
 
 
 def _read_wti(spark, cfg: dict):
@@ -224,7 +140,7 @@ def _apply_gold_comments(spark, cfg: dict, name: str) -> None:
         try:
             spark.sql(statement)
         except Exception as exc:
-            print(f"Oro: no se pudo aplicar el comentario ({exc}): {statement[:90]}")
+            raise RuntimeError(f"Oro: no se pudo aplicar el comentario: {statement[:90]}") from exc
 
 
 def _write_gold_table(spark, cfg: dict, name: str, frame, *, mode: str = "overwrite") -> None:
@@ -281,6 +197,8 @@ def gold(cfg: dict, params=None) -> None:
                       reports_dir=resolve_path(reports) if reports else None)
 
     result = compute_gold(prices, wti, params, previas=previous, tracker=tracker)
+    if result.metricas_modelo.iloc[0].run_id_mlflow is None:
+        raise RuntimeError("Oro: MLflow no registró la ejecución; revise el experimento y las dependencias del Job")
 
     for name in ("precio_semanal", "variacion_semanal", "features_modelo"):
         _write_gold_table(spark, cfg, name, getattr(result, name))

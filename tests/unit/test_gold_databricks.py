@@ -46,6 +46,7 @@ def test_gold_orquesta_lectura_calculo_escritura_sincronizacion_y_comentarios(mo
     from unittest.mock import patch
 
     from gasolina_gt.gold.params import GoldParams
+    from gasolina_gt.gold import pipeline, tracking  # carga sklearn antes de patch.dict(sys.modules)
     from tests.unit.gold_helpers import serie_alternante
 
     spark = Mock()
@@ -62,6 +63,7 @@ def test_gold_orquesta_lectura_calculo_escritura_sincronizacion_y_comentarios(mo
                         lambda _s, _c, nombre, frame, mode="overwrite": escritas.append((nombre, mode, len(frame))))
     monkeypatch.setattr(databricks_layers, "_merge_predictions", lambda _s, _c, frame: mezcladas.append(len(frame)))
     monkeypatch.setattr(databricks_layers, "_sync_managed_table", lambda _s, _c, capa, nombre: sincronizadas.append((capa, nombre)))
+    monkeypatch.setattr(tracking, "registrar_experimento", lambda *_args, **_kwargs: "run-de-prueba")
     cfg = {**CFG, "paths": {"reports": str(tmp_path)}}
     with patch.dict(sys.modules, {"delta": types.ModuleType("delta"), "delta.tables": delta_tables}):
         databricks_layers.gold(cfg, params=GoldParams())
@@ -74,4 +76,33 @@ def test_gold_orquesta_lectura_calculo_escritura_sincronizacion_y_comentarios(mo
     comentadas = {c.args[0].split("gold_")[1].split(" ")[0] for c in spark.sql.call_args_list
                   if c.args[0].startswith("COMMENT ON TABLE")}
     assert comentadas == {"precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo"}
-    assert (tmp_path / "gold_experimento.json").is_file()   # sin MLflow local: queda el reporte
+
+
+def test_gold_falla_antes_de_escribir_si_mlflow_no_registra(monkeypatch):
+    import sys
+    import types
+    from unittest.mock import patch
+
+    from gasolina_gt.gold.params import GoldParams
+    from gasolina_gt.gold import pipeline, tracking  # carga sklearn antes de patch.dict(sys.modules)
+    from tests.unit.gold_helpers import serie_alternante
+
+    spark = Mock()
+    spark.read.format.return_value.load.return_value.select.return_value.toPandas.return_value = serie_alternante(30)
+    spark.catalog.tableExists.return_value = False
+    delta_tables = types.ModuleType("delta.tables")
+    delta_tables.DeltaTable = Mock()
+    delta_tables.DeltaTable.isDeltaTable.side_effect = lambda _spark, path: path.endswith("/precios")
+    monkeypatch.setattr(databricks_layers, "_spark", lambda: spark)
+    monkeypatch.setattr(databricks_layers, "_ensure_layer_dir", lambda *a: None)
+    monkeypatch.setattr(tracking, "registrar_experimento", lambda *_args, **_kwargs: None)
+    write = Mock()
+    monkeypatch.setattr(databricks_layers, "_write_gold_table", write)
+    with patch.dict(sys.modules, {"delta": types.ModuleType("delta"), "delta.tables": delta_tables}):
+        try:
+            databricks_layers.gold(CFG, params=GoldParams())
+        except RuntimeError as exc:
+            assert "MLflow no registró" in str(exc)
+        else:
+            raise AssertionError("Oro debió detenerse si MLflow falla")
+    write.assert_not_called()

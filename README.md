@@ -36,7 +36,7 @@ Compose monta `LOCAL_DATA_DIR` en solo lectura dentro del contenedor. El Dockerf
 
 ## Databricks
 
-Al disponer de Unity Catalog, cambie `DATA_SOURCE=databricks` y complete en el entorno del Job:
+Para pruebas manuales, use `DATA_SOURCE=databricks` y las rutas del equipo en un `.env` **local al Git folder**:
 
 ```dotenv
 BRONZE_INPUT_URI=s3://bucket-bronce/img/
@@ -50,11 +50,13 @@ Las imágenes se leen de `img/`. `BRONZE_INPUT_URI` puede apuntar al bucket o di
 
 Según el enunciado del curso, S3 guarda físicamente cada capa: Bronce recibe las fotos y conserva su contenido binario, Plata guarda precios limpios y rechazos, y Oro guarda indicadores y resultados para la API del Droplet. El workspace aloja el Git folder, el cómputo interactivo, el Job, los experimentos de MLflow y las tablas administradas del esquema del equipo. Este esquema usa `CREATE TABLE` y no requiere `CREATE EXTERNAL TABLE` sobre las external locations; los datos de S3 permanecen como fuente para cada capa y para la futura API.
 
-Las rutas son **prefijos autorizados mediante external locations**, no nombres de credenciales. El administrador debe configurar storage credentials, external locations y permisos de Unity Catalog. Instale este paquete en el cluster y ejecute las tres entradas `pipelines/01_bronze.py` → `02_silver.py` → `03_gold.py` como tareas Python del Job. Bronce lee con `binaryFile` e ingesta por ruta única; Plata extrae OCR, aplica reglas de calidad y separa rechazos; Oro genera indicadores semanales y variables en Delta. El entrenamiento y publicación de predicciones en Databricks, el Job exportado y el despliegue en el Droplet se completarán cuando existan infraestructura, fotos históricas y credenciales. No hay recursos Databricks desplegados desde este repositorio todavía.
+Las rutas son **prefijos autorizados mediante external locations**, no nombres de credenciales. El Job usa **parámetros de notebook**, no presupone que exista ese `.env`. La definición preparada está en [`pipelines/job.json`](pipelines/job.json): tres tareas de notebook Bronce → Plata → Oro, entorno serverless, experimento `/Shared/equipo7-gasolina` y programación semanal pausada hasta verificar el primer `Run now`. Hay que crear el Job en Databricks, configurar su correo de fallo y luego activar la programación; guardar el archivo en Git no crea recursos en el workspace. El código y las instrucciones de verificación están en [`docs/databricks_job.md`](docs/databricks_job.md).
+
+Plata usa el notebook de visión `02_silver.py`; **no use `databricks_layers.silver()`**, que ahora se detiene explícitamente para proteger las tablas. Oro calcula indicadores, predicciones y métricas y registra una ejecución en MLflow. Si hay pocos ejemplos de semanas consecutivas, usa y registra la línea base sin crear un artefacto de modelo entrenado.
 
 ### Reprocesar Plata y Oro
 
-En un notebook de Databricks, después de importar `settings`, `silver` y `gold` desde `databricks_layers`, ejecute `silver(settings(), reprocess=True)` y, cuando termine correctamente, `gold(settings())`. La primera llamada vuelve a aplicar OCR a todas las fotos ya guardadas en Bronce y reemplaza `precios` y `precios_rejected` en S3 y sus copias administradas en `workspace.equipo7`. Si no obtiene ningún precio válido, conserva los Delta anteriores. Oro siempre recalcula sus tres salidas a partir de Plata. No es necesario repetir Bronce para este reproceso. Como tarea Python también puede invocarse `pipelines/02_silver.py --reprocess`, seguida de `pipelines/03_gold.py`.
+En `pipelines/02_silver.py`, use el widget `modo=incremental` para fotos nuevas, `modo=reaplicar_reglas` para recalcular Plata desde las extracciones ya guardadas, o `modo=reprocesar_todo` para volver a enviar todas las fotos al modelo de visión. Después ejecute `pipelines/03_gold.py`. No hace falta repetir Bronce si las imágenes no cambiaron. El Job normal usa `incremental` y recalcula Oro en cada ejecución.
 
 El API actual ofrece `/health` y `/recomendacion` para el flujo local. La lectura de tablas Oro desde S3 por el Droplet, los endpoints adicionales del enunciado y la validación real del modelo siguen pendientes de la fase de despliegue. Las credenciales del Droplet deben estar solo en `api/.env`, con permisos `600` y acceso de solo lectura; nunca en Git.
 

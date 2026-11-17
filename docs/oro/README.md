@@ -63,7 +63,7 @@ Las tablas `gold_*` son las únicas que consume la API. El detalle de columnas y
   3. si tampoco existe ninguna, `se_mantiene`.
 
   En los casos 2 y 3 el modelo se marca `linea_base_respaldo`, para que se note que es un supuesto y no una medición. Un `pronostico` ya resuelto no se reescribe: queda como registro de lo que se dijo; solo se le rellena `direccion_real` cuando llegan las fotos. El `backtest` se recalcula con el modelo actual. Clave del `MERGE`: `(semana, combustible, tipo)`.
-- **MLflow** (`/Shared/equipo7-gasolina`): parámetros (umbral, semanas de test, features, hiperparámetros), métricas del modelo y de la línea base, y el modelo con `mlflow.sklearn.log_model` cuando se usa el modelo. Si MLflow no está o falla, Oro sigue y deja `reports/gold_experimento.json`.
+- **MLflow** (`/Shared/equipo7-gasolina`): parámetros (umbral, semanas de test, features, hiperparámetros), métricas del modelo y de la línea base, y el modelo con `mlflow.sklearn.log_model` cuando se usa el modelo. En el Job de Databricks, una falla del registro detiene Oro antes de escribir tablas; el cálculo local puede dejar un reporte en `reports/`.
 
 ## Parámetros
 
@@ -123,7 +123,7 @@ SELECT combustible, count(*) AS semanas FROM workspace.equipo7.gold_features_mod
 DESCRIBE TABLE EXTENDED workspace.equipo7.gold_predicciones;   -- muestra los COMMENT
 ```
 
-Para reprocesar tras corregir Plata: `silver(settings(), reprocess=True)` y luego `gold(settings())`. Oro vuelve a calcular todo desde Plata y es idempotente: repetirlo sin fotos nuevas no duplica ni cambia las predicciones (más una fila nueva en `gold_metricas_modelo`).
+Para reprocesar tras corregir Plata: ejecutar el notebook `pipelines/02_silver.py` con `modo=reaplicar_reglas` o `modo=reprocesar_todo`, y luego `gold(settings())` o la tarea `03_oro` del Job. `databricks_layers.silver()` está deshabilitada. Oro vuelve a calcular todo desde Plata y es idempotente: repetirlo sin fotos nuevas no duplica ni cambia las predicciones (más una fila nueva en `gold_metricas_modelo`).
 
 ## Pruebas locales
 
@@ -138,8 +138,8 @@ Los datos sintéticos de las pruebas viven solo en `tests/unit/gold_helpers.py`.
 
 Las capturas se guardan en `docs/oro/evidencia/` con nombres descriptivos y numerados. Los de la lista son una propuesta:
 
-- [ ] `01_triples.png`: conteo de ejemplos (triples) por combustible que imprime el inicio de Oro.
-- [ ] `02_tablas_gold.png`: las cinco tablas `workspace.equipo7.gold_*` y `DESCRIBE TABLE EXTENDED` con los comentarios (si no cabe en una captura, `02a_...`, `02b_...`).
-- [ ] `03_mlflow.png`: experimento MLflow con parámetros, métricas y modelo (o `gold_experimento.json` si MLflow no está disponible).
+- [x] `01_triples.png`: 15 ejemplos válidos en total; se usó la línea base por falta de datos.
+- [x] `02_tablas_gold.png`: consulta de `gold_predicciones`. Falta capturar comentarios y el resumen de las cinco tablas.
+- [x] `03_mlflow.png` y `03b_mlflow_run.png`: parámetros y métricas del experimento. No hay artefacto de modelo porque no se entrenó un clasificador.
 - [ ] `04_ejecucion_1.png` y `05_ejecucion_2.png`: dos ejecuciones con fotos de semanas distintas; la segunda rellena `direccion_real` del pronóstico anterior.
-- [ ] `06_reproceso_plata_oro.png`: `reprocess=True` en Plata seguido de Oro, sin duplicados en `gold_predicciones`.
+- [ ] `06_reproceso_plata_oro.png`: `modo=reaplicar_reglas` en el notebook de Plata seguido de Oro, sin duplicados en `gold_predicciones`.

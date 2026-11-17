@@ -1,15 +1,34 @@
+# Databricks notebook source
 """Bronce: archivo de origen local o binaryFile sobre external location."""
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from common import settings
+
+def _setup_imports() -> None:
+    candidates = [Path.cwd(), Path.cwd() / "pipelines"]
+    if "__file__" in globals():
+        candidates.insert(0, Path(__file__).resolve().parent)
+    if "dbutils" in globals():
+        notebook = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+        path = Path(notebook if notebook.startswith("/Workspace/") else "/Workspace" + notebook)
+        candidates.insert(0, path.parent)
+    for directory in candidates:
+        if (directory / "common.py").is_file() and (directory.parent / "src" / "gasolina_gt").is_dir():
+            sys.path[:0] = [str(directory), str(directory.parent / "src")]
+            return
+    raise RuntimeError("No se encontró pipelines/common.py y src/gasolina_gt en el Git folder")
+
+
+_setup_imports()
+from common import job_settings, settings
 
 
 def main() -> None:
-    cfg = settings()
+    cfg = job_settings(dbutils.widgets) if "dbutils" in globals() else settings()
     if cfg["source"]["mode"] == "databricks":
         from databricks_layers import bronze
         bronze(cfg)
