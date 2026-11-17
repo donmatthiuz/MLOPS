@@ -57,4 +57,4 @@ El OCR local de siete segmentos ya no es la ruta de producción de Plata: el not
 - [ ] Exportar la definición real del Job a `pipelines/job.json` y revisar sus valores antes de subirla.
 - [ ] Verificar dos ejecuciones exitosas con fotos de semanas distintas y conservar evidencia de duración e historial.
 - [x] Implementar la API FastAPI y Docker para leer precios, pronósticos y métricas desde Oro en S3.
-- [ ] Desplegar la API en el Droplet, añadir `api/.env` solo allí y comprobar los endpoints desde una computadora externa.
+- [ ] Desplegar la API en el Droplet, añadir `api/.env` solo allí y comprobar los endpoints desde una computadora externa. Contenedor desplegado y puerto 8007 accesible desde fuera; falta el permiso de lectura de Oro en S3, solicitado al catedrático. Ver [guía de despliegue](api_despliegue.md).

@@ -54,7 +54,7 @@ En `pipelines/02_silver.py`, use el widget `modo=incremental` para fotos nuevas,
 
 ## API en DigitalOcean
 
-La API FastAPI lee directamente los Delta del prefijo Oro en S3 con `deltalake`. Docker aísla sus dependencias y `restart: unless-stopped` la mantiene en marcha al cerrar SSH. El contenedor solo consulta S3; no escribe tablas ni necesita acceso a Bronce o Plata. El `.env` del servidor, excluido de Git, contiene únicamente `GOLD_OUTPUT_URI` y `API_PORT`; `api/.env.example` es la plantilla. El puerto externo predeterminado es `8007`; ajuste `API_PORT` si el curso asignó otro `80XX`.
+La API FastAPI lee directamente los Delta del prefijo Oro en S3 con `deltalake`. Docker aísla sus dependencias y `restart: unless-stopped` la mantiene en marcha al cerrar SSH. El contenedor solo consulta S3; no escribe tablas ni necesita acceso a Bronce o Plata. El `.env` del servidor, excluido de Git, contiene `GOLD_OUTPUT_URI`, `API_PORT` y las credenciales AWS de solo lectura (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`); `api/.env.example` es la plantilla. La guía paso a paso está en [`docs/api_despliegue.md`](docs/api_despliegue.md). El puerto externo predeterminado es `8007`; ajuste `API_PORT` si el curso asignó otro `80XX`.
 
 En el Droplet, dentro de `/home/equipo-07/`:
 
@@ -63,16 +63,16 @@ git clone -b proyecto1 https://github.com/donmatthiuz/MLOPS.git
 cd MLOPS
 cp api/.env.example api/.env
 chmod 600 api/.env
-# Editar api/.env: GOLD_OUTPUT_URI y API_PORT.
+# Editar api/.env: GOLD_OUTPUT_URI, API_PORT y llaves AWS de solo lectura.
 docker compose --env-file api/.env up -d --build
 docker compose --env-file api/.env ps
 ```
 
-Si el repositorio ya está clonado, use `git pull` desde la rama `proyecto1` y repita `docker compose --env-file api/.env up -d --build`. El `.env` se conserva en el servidor y no se copia a la imagen. `--env-file` permite que Compose lea `API_PORT`; `env_file` pasa `GOLD_OUTPUT_URI` al contenedor. La región S3 `us-east-2` se configura en Compose. El compañero que despliegue debe verificar cómo recibe el contenedor el acceso de solo lectura a S3: el acceso configurado para el usuario Linux del Droplet no se hereda automáticamente. Para ver un fallo: `docker compose --env-file api/.env logs --tail=100 api`.
+Si el repositorio ya está clonado, use `git pull` desde la rama `proyecto1` y repita `docker compose --env-file api/.env up -d --build`. El `.env` se conserva en el servidor y no se copia a la imagen. `--env-file` permite que Compose lea `API_PORT`; `env_file` pasa `GOLD_OUTPUT_URI` al contenedor. La región S3 `us-east-2` se configura en Compose. El contenedor recibe el acceso de solo lectura a S3 por las llaves AWS de `api/.env`; el acceso configurado para el usuario Linux del Droplet (`~/.aws`) no se hereda. Sin esas llaves, `/health` responde 503. Para ver un fallo: `docker compose --env-file api/.env logs --tail=100 api`.
 
 Endpoints: `GET /health`, `/precios/actual`, `/precios?combustible=super&desde=2026-10-01&hasta=2026-11-30&limit=100&offset=0`, `/prediccion?combustible=super`, `/modelo/metricas` y Swagger en `/docs`. `/health` responde 503 si no puede abrir Oro. Los demás endpoints devuelven 503 si S3 no está disponible; los pronósticos o métricas ausentes devuelven 404. La API muestra `probabilidad: null` cuando Oro usa la línea base. Las predicciones conservan la fecha de la última semana disponible para cada combustible; no se presentan como actuales si faltan fotos nuevas.
 
-Desde otra computadora, pruebe `API_URL=http://<ip>:<puerto> sh tests/consultas_api.sh`. El despliegue real y el acceso HTTP externo aún deben comprobarse en el Droplet.
+Desde otra computadora, pruebe `API_URL=http://<ip>:<puerto> sh tests/consultas_api.sh`. La imagen y los endpoints se probaron localmente contra un S3 de prueba; el despliegue real y el acceso HTTP externo aún deben comprobarse en el Droplet.
 
 ## Documentación
 
