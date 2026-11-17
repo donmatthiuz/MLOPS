@@ -45,9 +45,9 @@ if not EN_DATABRICKS:
 
 # COMMAND ----------
 
-dbutils.widgets.text("origen", "s3://cc3105-cusn-869227452861-us-east-2-an/equipo7/fotos_precios",
+dbutils.widgets.text("origen", "",
                      "Origen: Delta de Bronce, tabla, o carpeta s3:// de fotos")
-dbutils.widgets.text("silver_uri", "s3://cc3105-ag-869227452861-us-east-2-an/equipo7", "Prefijo S3 de Plata")
+dbutils.widgets.text("silver_uri", "", "Prefijo S3 de Plata")
 dbutils.widgets.text("catalogo", "workspace", "Catálogo")
 dbutils.widgets.text("esquema", "equipo7", "Esquema")
 dbutils.widgets.dropdown("modo", "incremental", ["incremental", "reaplicar_reglas", "reprocesar_todo"], "Modo")
@@ -62,6 +62,8 @@ dbutils.widgets.dropdown("escribir", "si", ["si", "no"], "¿Escribir tablas?")
 P = {k: dbutils.widgets.get(k) for k in
      ("origen", "silver_uri", "catalogo", "esquema", "modo", "modelo", "lado_a", "lado_b",
       "precio_min", "precio_max", "limite_fotos", "escribir")}
+if not P["origen"].strip() or not P["silver_uri"].strip():
+    raise ValueError("Faltan parámetros origen y silver_uri; configúrelos en el Job o en los widgets")
 P["silver_uri"] = P["silver_uri"].rstrip("/")
 for k in ("catalogo", "esquema"):
     if not P[k].replace("_", "").isalnum():

@@ -1,16 +1,11 @@
 """Contrato del Job: entradas explícitas y separación segura de las tres capas."""
 from __future__ import annotations
 
-import json
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from pipelines.common import job_settings
 from pipelines.databricks_layers import silver
-
-
-ROOT = Path(__file__).resolve().parents[2]
 
 
 class WidgetsFalsos:
@@ -51,17 +46,6 @@ class JobConfigurationTest(unittest.TestCase):
     def test_funcion_antigua_de_plata_no_escribe(self):
         with self.assertRaisesRegex(RuntimeError, "02_silver.py"):
             silver({}, reprocess=True)
-
-    def test_job_tiene_tres_notebooks_ordenados_y_entorno(self):
-        job = json.loads((ROOT / "pipelines" / "job.json").read_text())
-        tasks = job["tasks"]
-        self.assertEqual([t["task_key"] for t in tasks], ["01_bronce", "02_plata", "03_oro"])
-        self.assertEqual(tasks[1]["depends_on"], [{"task_key": "01_bronce"}])
-        self.assertEqual(tasks[2]["depends_on"], [{"task_key": "02_plata"}])
-        self.assertTrue(all(t["notebook_task"]["source"] == "WORKSPACE" for t in tasks))
-        self.assertTrue(all(t["environment_key"] == "pipeline_serverless" for t in tasks))
-        self.assertEqual(job["schedule"]["pause_status"], "PAUSED")
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # Job y experimento de Databricks · equipo 7
 
-Referencia: [enunciado](enunciado_proyecto.pdf), fases 3 y 4. La definición preparada está en [`pipelines/job.json`](../pipelines/job.json). Guardarla en Git **no crea** el Job ni el experimento en el workspace.
+Referencia: [enunciado](enunciado_proyecto.pdf), fases 3 y 4. El Job se configura en la interfaz de Databricks; al terminar se exporta su definición real a `pipelines/job.json` para la entrega. Un archivo en Git **no crea** un Job en el workspace.
 
 ## Diseño listo en el repositorio
 
@@ -10,15 +10,15 @@ Referencia: [enunciado](enunciado_proyecto.pdf), fases 3 y 4. La definición pre
 | `02_plata` | `pipelines/02_silver.py` | Extracción con modelo de visión en modo `incremental`; Delta de precios, rechazos y respuestas crudas. |
 | `03_oro` | `pipelines/03_gold.py` | Tablas Oro, predicciones, métricas y una ejecución del experimento MLflow. |
 
-Las dependencias entre tareas son Bronce → Plata → Oro. Todas usan **serverless environment v6** con `pillow-heif`, `openai`, `scikit-learn`, `mlflow`, `pandas` y `requests`. Los notebooks Bronce y Oro reciben las cinco rutas de origen/salida y el catálogo como parámetros; Plata recibe `origen`, `silver_uri`, `catalogo`, `esquema` y sus parámetros de extracción. El Job no lee automáticamente un `.env` y no requiere claves AWS en el repositorio.
+Las dependencias entre tareas son Bronce → Plata → Oro. Todas usan **serverless environment v6** con `pillow-heif`, `openai`, `scikit-learn`, `mlflow`, `pandas` y `requests`. Los notebooks Bronce y Oro reciben las cuatro URI y el catálogo como parámetros; Plata recibe `origen`, `silver_uri`, `catalogo`, `esquema` y sus parámetros de extracción. Los siete parámetros comunes se completan en **Job parameters** y se pasan automáticamente a las tareas de notebook. El Job no lee automáticamente un `.env` y no requiere claves AWS en el repositorio.
 
 La programación propuesta es **martes a las 20:00, hora de Guatemala**, inicialmente pausada para probar `Run now`. Falta elegir en la UI el correo de aviso por fallo y activar la programación tras la primera ejecución correcta. En Free Edition se usa serverless porque no hay clusters clásicos disponibles; esto satisface la alternativa de cómputo que indique el catedrático, pero la diferencia con un cluster interactivo/clásico debe explicarse en el informe.
 
 ## Antes del primer `Run now`
 
-1. Hacer commit y push de estos cambios, y luego `Pull` en el Git folder **`/Workspace/Shared/MLOPS`** de Databricks. Verificar que esté en `proyecto1` y que aparezcan `pipelines/job.json`, `01_bronze.py`, `02_silver.py` y `03_gold.py` actualizados. El pull local no actualiza automáticamente ese Git folder.
+1. Hacer commit y push de los cambios de código, y luego `Pull` en el Git folder **`/Workspace/Shared/MLOPS`** de Databricks. Verificar que esté en `proyecto1` y que aparezcan `01_bronze.py`, `02_silver.py` y `03_gold.py` actualizados. El pull local no actualiza automáticamente ese Git folder.
 2. Verificar que la identidad **Run as** del Job pueda leer `xloc-raw`, escribir los prefijos `equipo7/` de Bronce/Plata/Oro, crear o reemplazar tablas en `workspace.equipo7`, consultar el endpoint `databricks-llama-4-maverick` y crear/escribir el experimento `/Shared/equipo7-gasolina`.
-3. Crear el Job `equipo-07-pipeline` con las tres tareas y parámetros de `pipelines/job.json`; usar **Notebook** como tipo de tarea, origen **Workspace** y cómputo **Serverless** con el mismo entorno v6. Agregar aviso por correo **On failure**. Mantener la programación pausada durante la prueba.
+3. Crear el Job `equipo-07-pipeline` con las tres tareas de la tabla anterior; usar **Notebook** como tipo de tarea, origen **Workspace** y cómputo **Serverless** con el mismo entorno v6. Completar en **Job parameters** `bronze_input_uri`, `bronze_output_uri`, `silver_output_uri`, `gold_output_uri`, `databricks_catalog`, `origen` y `silver_uri` con las rutas autorizadas del equipo. En Plata usar `modo=incremental`, `catalogo=workspace`, `esquema=equipo7`, `modelo=databricks-llama-4-maverick`, `precio_min=15` y `precio_max=60`. En Oro usar `mlflow_experiment=/Shared/equipo7-gasolina`, `umbral_q=0.10`, `semanas_test=4` y `usar_wti=true`. Agregar aviso por correo **On failure**. Mantener la programación pausada durante la prueba.
 
 ## Primera verificación
 
@@ -39,7 +39,7 @@ FROM workspace.equipo7.gold_predicciones ORDER BY semana DESC, combustible, tipo
 Verificar además el experimento `/Shared/equipo7-gasolina` en **Experiments** y los comentarios de las tablas Oro con `DESCRIBE TABLE EXTENDED workspace.equipo7.gold_predicciones`. El código de Oro ahora falla antes de escribir si MLflow no registra la ejecución; también falla si no puede aplicar los comentarios.
 
 Después de la prueba, activar la programación o el disparador de archivos que permita el workspace. Para la evidencia del enunciado se necesitan **dos ejecuciones exitosas con fotos de semanas distintas**; repetir el Job sin nuevas fotos comprueba idempotencia, pero no sustituye esa evidencia.
-Al terminar la configuración, exportar desde Databricks la definición real del Job y actualizar `pipelines/job.json` si la UI agregó o cambió campos; revisar que el archivo no incluya secretos antes de hacer commit.
+Al terminar la configuración, exportar la definición real del Job a `pipelines/job.json`. Antes de guardarla en Git, revisar sus parámetros y retirar cualquier secreto o valor privado que aparezca en el archivo.
 
 ## Reproceso de Plata
 

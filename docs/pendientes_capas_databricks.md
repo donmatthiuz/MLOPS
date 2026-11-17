@@ -53,6 +53,6 @@ El OCR local de siete segmentos ya no es la ruta de producción de Plata: el not
 
 ## Pendientes generales para la entrega
 
-- [ ] Crear en Databricks el Job preparado en [`pipelines/job.json`](../pipelines/job.json), configurar el correo de fallo y activar la programación después del primer `Run now` correcto. Ver [guía](databricks_job.md).
+- [ ] Terminar de configurar en Databricks el Job `equipo-07-pipeline`, agregar correo de fallo, activar la programación después del primer `Run now` correcto y exportar su definición a `pipelines/job.json`. Ver [guía](databricks_job.md).
 - [ ] Verificar dos ejecuciones exitosas con fotos de semanas distintas y conservar evidencia de duración e historial.
 - [ ] Completar la API que publica precios y predicciones desde Oro y la documentación/evidencia pedida por el enunciado.
