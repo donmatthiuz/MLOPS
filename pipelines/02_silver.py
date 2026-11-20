@@ -56,6 +56,7 @@ dbutils.widgets.text("catalogo", "workspace", "Catálogo")
 dbutils.widgets.text("esquema", "equipo7", "Esquema")
 dbutils.widgets.dropdown("modo", "incremental", ["incremental", "reaplicar_reglas", "reprocesar_todo", "refinar_referencias"], "Modo")
 dbutils.widgets.text("modelo", "databricks-llama-4-maverick", "Endpoint del modelo de visión")
+dbutils.widgets.text("modelo_enfoque", "", "Endpoint para recortes (vacío = modelo principal)")
 dbutils.widgets.text("lado_a", "1600", "Resolución lectura A (px)")
 dbutils.widgets.text("lado_b", "2560", "Resolución lectura B (px)")
 dbutils.widgets.text("precio_min", "15", "Precio mínimo válido (Q/gal)")
@@ -66,7 +67,7 @@ dbutils.widgets.dropdown("usar_referencia", "si", ["si", "no"], "¿Usar referenc
 dbutils.widgets.text("referencia_csv", "", "CSV mensual MEM (vacío = archivo del Git folder)")
 
 P = {k: dbutils.widgets.get(k) for k in
-     ("origen", "silver_uri", "catalogo", "esquema", "modo", "modelo", "lado_a", "lado_b",
+     ("origen", "silver_uri", "catalogo", "esquema", "modo", "modelo", "modelo_enfoque", "lado_a", "lado_b",
      "precio_min", "precio_max", "limite_fotos", "escribir", "usar_referencia", "referencia_csv")}
 if not P["origen"].strip() or not P["silver_uri"].strip():
     raise ValueError("Faltan parámetros origen y silver_uri; configúrelos en el Job o en los widgets")
@@ -349,9 +350,12 @@ de mercado ni infieras un dígito borroso. Responde SOLO JSON con la misma estru
         for vista in vistas_enfoque(img, contraste=contraste):
             contenido.append({"type": "image_url", "image_url": {
                 "url": f"data:image/jpeg;base64,{a_jpeg_b64(vista, 1600)}"}})
-        r = cliente.chat.completions.create(
-            model=P["modelo"], temperature=0, max_tokens=700,
-            messages=[{"role": "user", "content": contenido}])
+        modelo = P["modelo_enfoque"].strip() or P["modelo"]
+        parametros = {"model": modelo, "max_tokens": 700,
+                      "messages": [{"role": "user", "content": contenido}]}
+        if modelo == "databricks-llama-4-maverick":
+            parametros["temperature"] = 0
+        r = cliente.chat.completions.create(**parametros)
         return r.choices[0].message.content
 
     def intentar_enfoque(img, contraste: bool, foto: str) -> str | None:
@@ -411,6 +415,17 @@ if P["modo"] == "refinar_referencias":
         rechazadas += [tuple(x) for x in spark.read.format("delta").load(RUTA["precios_rejected"])
                        .filter(F.col("motivo").startswith("error_extraccion")).collect()
                        if x.foto_origen not in anteriores]
+    fotos_refinadas = {fila.path for fila in pendientes}
+    previas_por_foto = {(r.foto_origen, r.combustible): (round(float(r.precio_q_galon), 2), r.metodo_validacion)
+                       for r in precios_previos.select("foto_origen", "combustible", "precio_q_galon",
+                                                      "metodo_validacion").collect()
+                       if r.foto_origen in fotos_refinadas}
+    nuevas_por_foto = {(r[5], r[1]): (round(float(r[2]), 2), r[6]) for r in aceptadas if r[5] in fotos_refinadas}
+    for foto, comb in sorted(previas_por_foto.keys() | nuevas_por_foto.keys()):
+        previo = previas_por_foto.get((foto, comb))
+        nuevo = nuevas_por_foto.get((foto, comb))
+        if previo != nuevo:
+            print(f"Cambio {foto.split('/')[-1]} {comb}: {previo or 'sin precio'} -> {nuevo or 'sin precio'}")
     n_referencia_calculada = sum(row[6].startswith("referencia_") for row in aceptadas)
     print(f"Lecturas con referencia: antes={n_referencia_anterior} · recalculadas={n_referencia_calculada}")
 

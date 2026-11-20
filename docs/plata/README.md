@@ -40,6 +40,11 @@ administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se conf
   - `refinar_referencias`: envía solo fotos con métodos `referencia_` o lecturas fallidas a dos lecturas enfocadas,
     conserva las respuestas originales y reconstruye Plata. Puede probarse con `limite_fotos=5`, `escribir=no`;
     para aplicar a todas las fotos pendientes use `limite_fotos=0`, `escribir=si`.
+- **Comparar modelos en los mismos recortes:** `modelo_enfoque` vacío usa `modelo` (Maverick por defecto).
+  Para una prueba sin escritura, use `modo=refinar_referencias`, `modelo_enfoque=databricks-claude-sonnet-4-6`,
+  `limite_fotos=5` y `escribir=no`. Compare las líneas `Cambio ...` y el conteo de referencias con la prueba de
+  Maverick. El endpoint alternativo requiere acceso en el workspace; si falla, el notebook conserva las lecturas
+  originales y registra el error de cada llamada.
 - Después de cambiar Plata hay que volver a ejecutar Oro.
 - Para aplicar esta regla a las extracciones existentes, actualice el Git folder en Databricks y ejecute con
   `modo=reaplicar_reglas`, `usar_referencia=si`, `referencia_csv` vacío y los parámetros habituales `origen` y
@@ -106,7 +111,7 @@ antes de las últimas semanas observadas y al menos dos clases en entrenamiento.
 
 ## Parámetros (widgets)
 
-`origen` (Delta de Bronce, tabla o carpeta `s3://`), `silver_uri`, `catalogo`, `esquema`, `modo`, `modelo`, `lado_a`, `lado_b`, `precio_min`, `precio_max`, `limite_fotos`, `escribir`, `usar_referencia`, `referencia_csv`.
+`origen` (Delta de Bronce, tabla o carpeta `s3://`), `silver_uri`, `catalogo`, `esquema`, `modo`, `modelo`, `modelo_enfoque`, `lado_a`, `lado_b`, `precio_min`, `precio_max`, `limite_fotos`, `escribir`, `usar_referencia`, `referencia_csv`.
 
 En el Job, `origen = s3://cc3105-cusn-869227452861-us-east-2-an/equipo7/fotos_precios` (Delta de Bronce). Para desarrollo se puede apuntar directo a `s3://cc3105-raw-869227452861-us-east-2-an/img/`.
 
