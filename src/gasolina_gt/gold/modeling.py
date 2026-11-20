@@ -70,24 +70,29 @@ def supera_linea_base(modelo: dict, base: dict) -> bool:
     return bool(modelo["f1_macro"] > base["f1_macro"] and modelo["accuracy"] >= base["accuracy"])
 
 
-def _crear(nombre: str, semilla: int) -> Pipeline:
+def _crear(nombre: str, semilla: int, ajustes: Optional[dict] = None) -> Pipeline:
+    hp = _hiperparametros(nombre, semilla, ajustes)
     numericas = Pipeline([("imputar", SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True)),
                           ("escalar", StandardScaler())])
     prep = ColumnTransformer([("num", numericas, COLUMNAS_NUMERICAS),
                               ("combustible", OneHotEncoder(handle_unknown="ignore"), ["combustible"])])
     if nombre == "regresion_logistica":
-        clf = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=semilla)
+        clf = LogisticRegression(C=hp["C"], max_iter=hp["max_iter"],
+                                 class_weight=hp["class_weight"], random_state=semilla)
     elif nombre == "arbol_decision":
-        clf = DecisionTreeClassifier(max_depth=3, min_samples_leaf=3, class_weight="balanced", random_state=semilla)
+        clf = DecisionTreeClassifier(max_depth=hp["max_depth"], min_samples_leaf=hp["min_samples_leaf"],
+                                     class_weight=hp["class_weight"], random_state=semilla)
     else:
         raise ValueError(nombre)
     return Pipeline([("prep", prep), ("clf", clf)])
 
 
-def _hiperparametros(nombre: str, semilla: int) -> dict:
+def _hiperparametros(nombre: str, semilla: int, ajustes: Optional[dict] = None) -> dict:
     if nombre == "regresion_logistica":
-        return {"C": 1.0, "max_iter": 1000, "class_weight": "balanced", "semilla": semilla}
-    return {"max_depth": 3, "min_samples_leaf": 3, "class_weight": "balanced", "semilla": semilla}
+        hp = {"C": 1.0, "max_iter": 1000, "class_weight": "balanced", "semilla": semilla}
+    else:
+        hp = {"max_depth": 3, "min_samples_leaf": 3, "class_weight": "balanced", "semilla": semilla}
+    return {**hp, **(ajustes or {})}
 
 
 def _predecir(modelo: Pipeline, filas: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -141,26 +146,35 @@ def _rango(df: pd.DataFrame) -> tuple:
     return (df["semana"].min(), df["semana"].max()) if len(df) else (pd.NaT, pd.NaT)
 
 
-def _ajustar(nombre: str, datos: pd.DataFrame, semilla: int) -> Pipeline:
-    modelo = _crear(nombre, semilla)
+def _ajustar(nombre: str, datos: pd.DataFrame, semilla: int, ajustes: Optional[dict] = None) -> Pipeline:
+    modelo = _crear(nombre, semilla, ajustes)
     modelo.fit(datos[COLUMNAS_FEATURES], datos["direccion_siguiente"])
     return modelo
 
 
-def _elegir_candidato(train: pd.DataFrame, semilla: int) -> tuple[str, bool, dict]:
+def _elegir_candidato(train: pd.DataFrame, semilla: int) -> tuple[str, bool, dict, dict]:
     pliegues = pliegues_temporales(train)
     if not pliegues:
-        return CANDIDATOS[0], False, {}
+        return CANDIDATOS[0], False, {}, {}
+    opciones = {
+        "regresion_logistica": [{"C": c} for c in (0.1, 1.0, 10.0)],
+        "arbol_decision": [{"max_depth": d, "min_samples_leaf": hoja}
+                           for d in (2, 3, 4) for hoja in (2, 3, 5)],
+    }
     puntajes = {}
+    mejores_ajustes = {}
     for nombre in CANDIDATOS:
-        f1s = []
-        for idx_train, idx_val in pliegues:
-            modelo = _ajustar(nombre, train.loc[idx_train], semilla)
-            prediccion, _ = _predecir(modelo, train.loc[idx_val])
-            f1s.append(metricas_clasificacion(train.loc[idx_val, "direccion_siguiente"], prediccion)["f1_macro"])
-        puntajes[nombre] = float(np.mean(f1s))
+        resultados = []
+        for ajustes in opciones[nombre]:
+            f1s = []
+            for idx_train, idx_val in pliegues:
+                modelo = _ajustar(nombre, train.loc[idx_train], semilla, ajustes)
+                prediccion, _ = _predecir(modelo, train.loc[idx_val])
+                f1s.append(metricas_clasificacion(train.loc[idx_val, "direccion_siguiente"], prediccion)["f1_macro"])
+            resultados.append((float(np.mean(f1s)), ajustes))
+        puntajes[nombre], mejores_ajustes[nombre] = max(resultados, key=lambda resultado: resultado[0])
     elegido = max(CANDIDATOS, key=lambda n: (puntajes[n], -CANDIDATOS.index(n)))  # empate: logística
-    return elegido, True, puntajes
+    return elegido, True, puntajes, mejores_ajustes[elegido]
 
 
 def _ultimas_semanas(features: pd.DataFrame) -> pd.DataFrame:
@@ -229,8 +243,8 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
             backtest=_linea_base(evaluables, "backtest", con_real=True), pronostico=_pronostico_base(features),
         )
 
-    candidato, validado, cv_f1 = _elegir_candidato(train, params.semilla)
-    ajustado_train = _ajustar(candidato, train, params.semilla)
+    candidato, validado, cv_f1, ajustes = _elegir_candidato(train, params.semilla)
+    ajustado_train = _ajustar(candidato, train, params.semilla, ajustes)
     prediccion, probabilidad = _predecir(ajustado_train, test)
     candidato_test = _salida(test, prediccion, probabilidad, candidato, "backtest", con_real=True)
     m_modelo = metricas_clasificacion(test["direccion_siguiente"], prediccion)
@@ -241,7 +255,7 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
                f"línea base: F1 macro {m_base['f1_macro']:.2f} y accuracy {m_base['accuracy']:.2f}")
     if usa_modelo:
         motivo = f"El modelo supera a la línea base en las semanas de prueba ({resumen})."
-        final = _ajustar(candidato, ej, params.semilla)
+        final = _ajustar(candidato, ej, params.semilla, ajustes)
         backtest, pronostico = candidato_test, _pronostico_modelo(features, final, candidato)
     else:
         motivo = f"El modelo no supera a la línea base, se usa la línea base ({resumen})."
@@ -257,5 +271,5 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
         candidato=candidato, validado_en_train=validado, cv_f1=cv_f1, n_ejemplos=len(ej), n_train=len(train),
         n_test=len(test), semana_train=_rango(train), semana_test=_rango(test), backtest=backtest,
         pronostico=pronostico, candidato_test=candidato_test, modelo_ajustado=final,
-        hiperparametros=_hiperparametros(candidato, params.semilla),
+        hiperparametros=_hiperparametros(candidato, params.semilla, ajustes),
     )

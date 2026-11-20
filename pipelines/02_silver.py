@@ -302,8 +302,12 @@ else:
     from openai import OpenAI
 
     pillow_heif.register_heif_opener()
+    if P["modelo"].startswith(("databricks-claude-", "system.ai.claude-")):
+        raise ValueError("Deje modelo=databricks-llama-4-maverick y ponga Claude en modelo_enfoque")
     cliente = WorkspaceClient().serving_endpoints.get_open_ai_client()
     modelo_enfoque, usa_gateway = resolver_modelo_enfoque(P["modelo_enfoque"] or P["modelo"])
+    print(f"Modelo principal: {P['modelo']} · modelo de enfoque: {modelo_enfoque} · "
+          f"ruta: {'Unity Gateway' if usa_gateway else 'Serving Endpoints'}")
     cliente_enfoque = cliente
     if usa_gateway:
         contexto = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
@@ -373,7 +377,7 @@ de mercado ni infieras un dígito borroso. Responde SOLO JSON con la misma estru
         try:
             return preguntar_enfoque(img, contraste)
         except Exception as exc:
-            if P["modelo_enfoque"].strip():
+            if usa_gateway or P["modelo_enfoque"].strip():
                 raise ErrorModeloEnfoque(f"El modelo de enfoque {modelo_enfoque} falló: {str(exc)[:250]}") from exc
             print(f"Lectura enfocada falló para {foto} (contraste={contraste}): {str(exc)[:160]}")
             return None

@@ -80,6 +80,15 @@ def test_el_modelo_se_usa_cuando_supera_a_la_linea_base(alternante):
     assert r.modelo_elegido in {"regresion_logistica", "arbol_decision"}
     assert r.n_test == 12 and r.n_train == 72
     assert r.validado_en_train and set(r.cv_f1) == {"regresion_logistica", "arbol_decision"}
+    clf = r.modelo_ajustado.named_steps["clf"]
+    if r.modelo_elegido == "regresion_logistica":
+        assert r.hiperparametros["C"] in {0.1, 1.0, 10.0}
+        assert clf.C == r.hiperparametros["C"]
+    else:
+        assert r.hiperparametros["max_depth"] in {2, 3, 4}
+        assert r.hiperparametros["min_samples_leaf"] in {2, 3, 5}
+        assert clf.max_depth == r.hiperparametros["max_depth"]
+        assert clf.min_samples_leaf == r.hiperparametros["min_samples_leaf"]
 
 
 def test_si_el_modelo_no_supera_a_la_linea_base_se_usa_la_linea_base():
