@@ -21,3 +21,5 @@ presentacion/
 pipelines/
 src/
 tests/
+frontend/node_modules/
+frontend/dist/

@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .gold_store import GoldUnavailable, check_gold, read_gold
 
 app = FastAPI(title="Gasolina GT · equipo 07", version="1.0.0")
+STATIC_DIR = Path(__file__).parent / "static"
+if (STATIC_DIR / "assets").is_dir():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="frontend-assets")
 
 COMBUSTIBLES = {"diesel", "regular", "super"}
 
@@ -101,3 +107,19 @@ def modelo_metricas() -> dict:
     if not rows:
         raise HTTPException(status_code=404, detail="No hay métricas de Oro.")
     return max(rows, key=lambda row: str(row["_generado_en"]))
+
+
+@app.get("/", include_in_schema=False)
+def frontend() -> FileResponse:
+    index = STATIC_DIR / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Frontend no compilado.")
+    return FileResponse(index)
+
+
+@app.get("/favicon.svg", include_in_schema=False)
+def favicon() -> FileResponse:
+    icon = STATIC_DIR / "favicon.svg"
+    if not icon.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(icon, media_type="image/svg+xml")

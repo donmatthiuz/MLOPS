@@ -19,6 +19,7 @@ Comprobaciones locales previas:
 - `tests/integration/test_api.py`: 4 pruebas correctas.
 - El contenedor, con las mismas restricciones de `compose.yaml` (`read_only`, `cap_drop: ALL`, `no-new-privileges`), se probó contra un S3 local (MinIO) con tablas Delta de Oro de ejemplo. `tests/consultas_api.sh` respondió en todos los endpoints y `/docs` devolvió 200.
 - Sin `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` en el entorno del contenedor, `/health` devuelve 503. Las credenciales de `~/.aws` del usuario Linux no se heredan.
+- La interfaz React se compila en la misma imagen y se abre en `/` por el puerto de la API. Puede cargar sin S3 y muestra que Oro no está disponible; los precios y pronósticos requieren el permiso pendiente.
 
 ## Bloqueo: lectura de Oro en S3
 
@@ -41,7 +42,7 @@ cd ~/MLOPS
 git pull
 aws s3 ls s3://bucket-oro/prefijo-completo/   # sustituir por gold_output_uri; deben verse las cinco tablas
 nano api/.env            # agregar AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY
-docker compose --env-file api/.env up -d --force-recreate
+docker compose --env-file api/.env up -d --build
 docker compose --env-file api/.env ps                         # esperar "healthy"
 API_URL=http://localhost:8007 sh tests/consultas_api.sh
 ```
@@ -122,7 +123,7 @@ curl http://<ip>:8007/health
 API_URL=http://<ip>:8007 sh tests/consultas_api.sh
 ```
 
-Abrir también `http://<ip>:8007/docs` en el navegador. Esta es la prueba del criterio de aceptación.
+Abrir `http://<ip>:8007/` para la interfaz y `http://<ip>:8007/docs` para Swagger. Esta es la prueba del criterio de aceptación.
 
 ## Evidencia para el informe
 

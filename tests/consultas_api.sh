@@ -3,6 +3,8 @@
 set -eu
 API_URL="${API_URL:-http://localhost:8007}"
 
+curl --fail --show-error --silent --output /dev/null "$API_URL/"
+printf 'Frontend: OK\n'
 curl --fail --show-error --silent "$API_URL/health"
 printf '\n'
 curl --fail --show-error --silent "$API_URL/precios/actual"

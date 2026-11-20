@@ -6,7 +6,7 @@ Proyecto de extracción de precios desde fotografías y preparación de datos Br
 
 - `pipelines/01_bronze.py`, `02_silver.py`, `03_gold.py`: entradas por capa.
 - `src/gasolina_gt/`: OCR, preparación de datos, modelo local y utilidades compartidas.
-- `api/app/main.py` y `api/Dockerfile`: aplicación HTTP y entorno aislado.
+- `api/app/main.py`, `api/Dockerfile` y `frontend/`: API HTTP, interfaz React y entorno aislado.
 - `docs/`: enunciado, entendimiento de negocio, diagrama e informe técnico en elaboración.
 - `presentacion/`: material del jurado cuando esté listo.
 - `tests/`: pruebas de código.
@@ -56,6 +56,8 @@ En `pipelines/02_silver.py`, use el widget `modo=incremental` para fotos nuevas,
 
 La API FastAPI lee directamente los Delta del prefijo Oro en S3 con `deltalake`. Docker aísla sus dependencias y `restart: unless-stopped` la mantiene en marcha al cerrar SSH. El contenedor solo consulta S3; no escribe tablas ni necesita acceso a Bronce o Plata. El `.env` del servidor, excluido de Git, contiene `GOLD_OUTPUT_URI`, `API_PORT` y las credenciales AWS de solo lectura (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`); `api/.env.example` es la plantilla. La guía paso a paso está en [`docs/api_despliegue.md`](docs/api_despliegue.md). El puerto externo predeterminado es `8007`; ajuste `API_PORT` si el curso asignó otro `80XX`.
 
+El frontend React se compila dentro de `api/Dockerfile` y FastAPI lo sirve en `/` por el mismo puerto. Consulta precios, histórico, pronósticos y métricas usando los endpoints existentes; `/docs` sigue disponible para Swagger. La interfaz informa cuando Oro no está disponible y no sustituye datos reales por ejemplos.
+
 En el Droplet, dentro de `/home/equipo-07/`:
 
 ```bash
@@ -73,6 +75,8 @@ Si el repositorio ya está clonado, use `git pull` desde la rama `proyecto1` y r
 Endpoints: `GET /health`, `/precios/actual`, `/precios?combustible=super&desde=2026-10-01&hasta=2026-11-30&limit=100&offset=0`, `/prediccion?combustible=super`, `/modelo/metricas` y Swagger en `/docs`. `/health` responde 503 si no puede abrir Oro. Los demás endpoints devuelven 503 si S3 no está disponible; los pronósticos o métricas ausentes devuelven 404. La API muestra `probabilidad: null` cuando Oro usa la línea base. Las predicciones conservan la fecha de la última semana disponible para cada combustible; no se presentan como actuales si faltan fotos nuevas.
 
 Desde otra computadora, pruebe `API_URL=http://<ip>:<puerto> sh tests/consultas_api.sh`. La imagen y los endpoints se probaron localmente contra un S3 de prueba; el despliegue real y el acceso HTTP externo aún deben comprobarse en el Droplet.
+
+Para desarrollar solo la interfaz: ejecute `npm ci` y `npm run dev` dentro de `frontend/`, con la API escuchando en `localhost:8007`. Vite abre `localhost:5173` y pasa las consultas a la API. Para apuntar a otro puerto, defina `VITE_API_PROXY_TARGET` antes de iniciar Vite.
 
 ## Documentación
 
