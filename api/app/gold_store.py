@@ -34,13 +34,23 @@ def _delta_table(name: str):
 
 
 def check_gold() -> None:
-    _delta_table("precio_semanal")
+    table = _delta_table("precio_semanal")
+    try:
+        # Abrir el log no comprueba que el lector pueda leer los archivos de datos.
+        next(iter(table.scan(columns=["semana"])), None)
+    except Exception as exc:
+        logger.exception("No se pudo leer la tabla Oro precio_semanal")
+        raise GoldUnavailable("precio_semanal") from exc
 
 
 def read_gold(name: str, columns: list[str]) -> list[dict]:
     table = _delta_table(name)
     try:
-        return table.to_pyarrow_table(columns=columns).to_pylist()
+        import pyarrow as pa
+
+        # scan aplica deletion vectors; to_pyarrow_table rechaza tablas que
+        # declaren esa reader feature, aunque el log Delta se pueda abrir.
+        return pa.table(table.scan(columns=columns)).to_pylist()
     except Exception as exc:
         logger.exception("No se pudo leer la tabla Oro %s", name)
         raise GoldUnavailable(name) from exc

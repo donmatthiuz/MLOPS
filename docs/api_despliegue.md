@@ -20,6 +20,7 @@ Comprobaciones locales previas:
 - El contenedor, con las mismas restricciones de `compose.yaml` (`read_only`, `cap_drop: ALL`, `no-new-privileges`), se probó contra un S3 local (MinIO) con tablas Delta de Oro de ejemplo. `tests/consultas_api.sh` respondió en todos los endpoints y `/docs` devolvió 200.
 - Sin `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` en el entorno del contenedor, `/health` devuelve 503. Las credenciales de `~/.aws` del usuario Linux no se heredan.
 - La interfaz React se compila en la misma imagen y se abre en `/` por el puerto de la API. Puede cargar sin S3 y muestra que Oro no está disponible; los precios y pronósticos requieren el permiso pendiente.
+- La API lee los Delta con `DeltaTable.scan`, compatible con la función `deletionVectors` que Databricks activó en las tablas Oro. `/health` comprueba también una lectura inicial para detectar fallos del lector.
 
 ## Bloqueo: lectura de Oro en S3
 
@@ -139,7 +140,7 @@ No incluir en capturas ni commits el contenido de `api/.env`.
 | Síntoma | Causa probable | Qué revisar |
 | --- | --- | --- |
 | `/health` responde 503 | Credenciales, URI o región | `docker compose --env-file api/.env logs --tail=100 api`; comparar con `aws s3 ls <GOLD_OUTPUT_URI>` |
-| `/health` OK pero un endpoint da 503 | La tabla existe pero no se pudo leer | Logs; si mencionan una *reader feature* no soportada, revisar las propiedades de esa tabla en Databricks |
+| `/health` OK pero un endpoint da 503 | La tabla existe pero no se pudo leer | Logs; si mencionan `deletionVectors`, actualizar el repositorio y reconstruir la imagen para usar `DeltaTable.scan` |
 | `/prediccion` o `/modelo/metricas` dan 404 | Oro no generó pronóstico o métricas | Ejecutar el Job en Databricks y revisar `gold_predicciones` y `gold_metricas_modelo` |
 | Funciona en el Droplet pero no desde fuera | Firewall o puerto | Puerto asignado correcto en `API_PORT`; consultar al catedrático si el 8007 está abierto |
 | `docker ps` pide permisos | El usuario no está en el grupo `docker` | Pedir acceso al catedrático; no usar `sudo` sobre recursos de otros equipos |
