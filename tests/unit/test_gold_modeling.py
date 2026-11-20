@@ -164,6 +164,36 @@ def test_sin_fuga_el_test_no_influye_en_la_eleccion_ni_en_el_ajuste(alternante):
                                   base.candidato_test[columnas].reset_index(drop=True))
 
 
+def test_validacion_observada_usa_mas_semanas_sin_mirar_el_holdout(alternante):
+    plata_observada = serie_alternante(30)
+    observados = _features(plata_observada.loc[~plata_observada["fecha"].isin(
+        [martes(n) for n in range(5, 14)])])
+    base = entrenar_y_evaluar(alternante, GoldParams(), observados)
+    assert base.validado_en_train
+    assert "ejemplos observados de validación interna" in base.motivo
+    assert base.n_test == 12
+    assert base.n_validacion_cv > base.n_test
+
+    alterado = observados.copy()
+    ultimas = sorted(ejemplos_etiquetados(alterado)["semana"].unique())[-4:]
+    alterado.loc[alterado["semana"].isin(ultimas), "direccion_siguiente"] = "se_mantiene"
+    despues = entrenar_y_evaluar(alternante, GoldParams(), alterado)
+    assert despues.candidato == base.candidato
+    assert despues.cv_f1 == base.cv_f1
+    assert despues.hiperparametros == base.hiperparametros
+    columnas = ["semana", "combustible", "prediccion", "probabilidad"]
+    pd.testing.assert_frame_equal(despues.candidato_test[columnas], base.candidato_test[columnas])
+
+
+def test_no_optimiza_con_menos_de_seis_ejemplos_observados(alternante):
+    observados = alternante[alternante["semana"].isin([martes(n) for n in range(19, 25)])]
+    r = entrenar_y_evaluar(alternante, GoldParams(), observados)
+    assert not r.validado_en_train
+    assert r.cv_f1 == {}
+    assert r.candidato == "regresion_logistica"
+    assert r.n_validacion_cv < 6
+
+
 def test_mismo_resultado_en_dos_ejecuciones(alternante):
     a, b = entrenar_y_evaluar(alternante, GoldParams()), entrenar_y_evaluar(alternante, GoldParams())
     pd.testing.assert_frame_equal(a.pronostico, b.pronostico)

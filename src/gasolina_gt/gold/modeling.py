@@ -140,6 +140,7 @@ class ResultadoModelo:
     candidato_test: Optional[pd.DataFrame] = None
     modelo_ajustado: Optional[Pipeline] = None
     hiperparametros: dict = field(default_factory=dict)
+    n_validacion_cv: int = 0
 
 
 def _rango(df: pd.DataFrame) -> tuple:
@@ -152,10 +153,34 @@ def _ajustar(nombre: str, datos: pd.DataFrame, semilla: int, ajustes: Optional[d
     return modelo
 
 
-def _elegir_candidato(train: pd.DataFrame, semilla: int) -> tuple[str, bool, dict, dict]:
-    pliegues = pliegues_temporales(train)
+def _elegir_candidato(train: pd.DataFrame, semilla: int,
+                      observados: Optional[pd.DataFrame] = None,
+                      min_train: int = 12) -> tuple[str, bool, dict, dict, int]:
+    if observados is None:
+        pliegues = [(train.loc[i_train], train.loc[i_val])
+                     for i_train, i_val in pliegues_temporales(train)]
+    else:
+        # Las etiquetas de validación provienen solo de fotos. Una semana cuya
+        # etiqueta usa el primer precio del holdout no está en train y se excluye.
+        validacion = observados[observados["semana"].isin(train["semana"])].copy()
+        semanas = np.sort(validacion["semana"].unique())
+        elegibles = []
+        for semana in semanas:
+            previo = train[train["semana"] + SEMANA < semana]
+            if len(previo) >= min_train and previo["direccion_siguiente"].nunique() >= 2:
+                elegibles.append(semana)
+        pliegues = []
+        for bloque in np.array_split(np.asarray(elegibles), min(5, len(elegibles))) if elegibles else []:
+            previo = train[train["semana"] + SEMANA < bloque[0]]
+            valida = validacion[validacion["semana"].isin(bloque)]
+            pliegues.append((previo, valida))
     if not pliegues:
-        return CANDIDATOS[0], False, {}, {}
+        return CANDIDATOS[0], False, {}, {}, 0
+    n_validacion = sum(len(valida) for _, valida in pliegues)
+    if observados is not None:
+        etiquetas = pd.concat([valida["direccion_siguiente"] for _, valida in pliegues])
+        if n_validacion < 6 or etiquetas.nunique() < 2:
+            return CANDIDATOS[0], False, {}, {}, n_validacion
     opciones = {
         "regresion_logistica": [{"C": c} for c in (0.1, 1.0, 10.0)],
         "arbol_decision": [{"max_depth": d, "min_samples_leaf": hoja}
@@ -166,15 +191,16 @@ def _elegir_candidato(train: pd.DataFrame, semilla: int) -> tuple[str, bool, dic
     for nombre in CANDIDATOS:
         resultados = []
         for ajustes in opciones[nombre]:
-            f1s = []
-            for idx_train, idx_val in pliegues:
-                modelo = _ajustar(nombre, train.loc[idx_train], semilla, ajustes)
-                prediccion, _ = _predecir(modelo, train.loc[idx_val])
-                f1s.append(metricas_clasificacion(train.loc[idx_val, "direccion_siguiente"], prediccion)["f1_macro"])
-            resultados.append((float(np.mean(f1s)), ajustes))
+            reales, predichas = [], []
+            for entrena, valida in pliegues:
+                modelo = _ajustar(nombre, entrena, semilla, ajustes)
+                prediccion, _ = _predecir(modelo, valida)
+                reales.extend(valida["direccion_siguiente"])
+                predichas.extend(prediccion)
+            resultados.append((metricas_clasificacion(reales, predichas)["f1_macro"], ajustes))
         puntajes[nombre], mejores_ajustes[nombre] = max(resultados, key=lambda resultado: resultado[0])
     elegido = max(CANDIDATOS, key=lambda n: (puntajes[n], -CANDIDATOS.index(n)))  # empate: logística
-    return elegido, True, puntajes, mejores_ajustes[elegido]
+    return elegido, True, puntajes, mejores_ajustes[elegido], n_validacion
 
 
 def _ultimas_semanas(features: pd.DataFrame) -> pd.DataFrame:
@@ -243,7 +269,8 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
             backtest=_linea_base(evaluables, "backtest", con_real=True), pronostico=_pronostico_base(features),
         )
 
-    candidato, validado, cv_f1, ajustes = _elegir_candidato(train, params.semilla)
+    candidato, validado, cv_f1, ajustes, n_validacion = _elegir_candidato(
+        train, params.semilla, evaluables if features_evaluacion is not None else None, params.min_train)
     ajustado_train = _ajustar(candidato, train, params.semilla, ajustes)
     prediccion, probabilidad = _predecir(ajustado_train, test)
     candidato_test = _salida(test, prediccion, probabilidad, candidato, "backtest", con_real=True)
@@ -262,8 +289,10 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
         final = None
         backtest, pronostico = _linea_base(test, "backtest", con_real=True), _pronostico_base(features)
     if not validado:
-        motivo += (" Limitación: no hubo semanas suficientes para validar dentro de train, "
+        motivo += (" Limitación: no hubo validación temporal suficiente para ajustar parámetros; "
                    "se usó regresión logística por defecto.")
+    elif features_evaluacion is not None:
+        motivo += f" Selección temporal con {n_validacion} ejemplos observados de validación interna."
 
     return ResultadoModelo(
         modelo_elegido=LINEA_BASE if not usa_modelo else candidato, usa_linea_base=not usa_modelo,
@@ -272,4 +301,5 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
         n_test=len(test), semana_train=_rango(train), semana_test=_rango(test), backtest=backtest,
         pronostico=pronostico, candidato_test=candidato_test, modelo_ajustado=final,
         hiperparametros=_hiperparametros(candidato, params.semilla, ajustes),
+        n_validacion_cv=n_validacion,
     )

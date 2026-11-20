@@ -32,7 +32,8 @@ def _metricas(r: ResultadoModelo) -> dict:
             "accuracy_linea_base": b.get("accuracy"), "f1_macro_linea_base": b.get("f1_macro"),
             "cv_f1_regresion_logistica": r.cv_f1.get("regresion_logistica"),
             "cv_f1_arbol_decision": r.cv_f1.get("arbol_decision"),
-            "n_ejemplos": r.n_ejemplos, "n_train": r.n_train, "n_test": r.n_test}
+            "n_ejemplos": r.n_ejemplos, "n_train": r.n_train, "n_test": r.n_test,
+            "n_validacion_cv": r.n_validacion_cv}
 
 
 def _parametros(params: GoldParams, r: ResultadoModelo, usa_wti: bool,
