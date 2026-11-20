@@ -22,7 +22,7 @@ Comprobaciones locales previas:
 
 ## Bloqueo: lectura de Oro en S3
 
-La API debe leer `s3://cc3105-au-869227452861-us-east-2-an/equipo7/`, donde escribe Oro el Job `equipo-07-pipeline`. Databricks escribe ahí con su storage credential de Unity Catalog, que no se puede usar desde el Droplet.
+La API debe leer el prefijo completo configurado en `GOLD_OUTPUT_URI`, que debe coincidir con `gold_output_uri` del Job `equipo-07-pipeline`. El Job debe ejecutarse de nuevo si se cambia ese prefijo, para generar las cinco tablas allí. Databricks escribe con su storage credential de Unity Catalog, que no se puede usar desde el Droplet.
 
 Diagnóstico en el Droplet (solo lectura):
 
@@ -30,7 +30,7 @@ Diagnóstico en el Droplet (solo lectura):
 - `~/.aws/env/cc3105-equipo7.env` define `S3_BUCKET=cc3105-cusn-869227452861-us-east-2-an`, `S3_PREFIX=cc3105-equipo7/monitoreo` y `SYNC_INTERVAL=300`: el usuario fue creado para el monitoreo del curso, no para la API.
 - `s3:ListBucket` da `AccessDenied` ("no identity-based policy allows") en los buckets `cc3105-raw`, `cc3105-cusn`, `cc3105-ag` y `cc3105-au`, en la raíz y en los prefijos `equipo7/`, `equipo-07/` y `cc3105-equipo7/`. `s3:ListAllMyBuckets` y la consulta de sus políticas IAM también se deniegan.
 
-Conclusión: el equipo no puede resolverlo por su cuenta. El 17 de noviembre se pidió al catedrático lectura (`s3:ListBucket` con prefijo `equipo7/` y `s3:GetObject` sobre `cc3105-au-869227452861-us-east-2-an/equipo7/*`) o credenciales de solo lectura para la API. `deltalake` necesita listar `_delta_log`, así que `s3:GetObject` solo no basta.
+Conclusión: el equipo no puede resolverlo por su cuenta. La solicitud de lectura del 17 de noviembre mencionaba el prefijo anterior `equipo7/`; si se cambia, hay que pedir `s3:ListBucket` y `s3:GetObject` para el prefijo completo elegido en `gold_output_uri`, o credenciales de solo lectura para la API. `deltalake` necesita listar `_delta_log`, así que `s3:GetObject` solo no basta.
 
 ## Cuando llegue el permiso
 
@@ -39,7 +39,7 @@ En el Droplet, como `cc3105-02`:
 ```bash
 cd ~/MLOPS
 git pull
-aws s3 ls s3://cc3105-au-869227452861-us-east-2-an/equipo7/   # deben verse las cinco tablas
+aws s3 ls s3://bucket-oro/prefijo-completo/   # sustituir por gold_output_uri; deben verse las cinco tablas
 nano api/.env            # agregar AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY
 docker compose --env-file api/.env up -d --force-recreate
 docker compose --env-file api/.env ps                         # esperar "healthy"
@@ -81,7 +81,7 @@ Pasos completos para una instalación desde cero. Los pasos 1, 3 y 5 ya se hicie
    docker ps                         # debe responder sin sudo
    docker compose version
    aws sts get-caller-identity --profile cc3105-equipo7
-   aws s3 ls <GOLD_OUTPUT_URI>/equipo7/ --profile cc3105-equipo7   # deben verse precio_semanal/, predicciones/, etc.
+   aws s3 ls s3://bucket-oro/prefijo-completo/ --profile cc3105-equipo7   # sustituir por gold_output_uri
    ```
 
    Si `aws s3 ls` no muestra las cinco carpetas, el problema está en la URI o en las credenciales, no en la API. `docker ps` muestra también los contenedores de otros equipos: no detenerlos ni borrarlos.

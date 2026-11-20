@@ -36,11 +36,11 @@ Para pruebas manuales, use `DATA_SOURCE=databricks` y las rutas del equipo en un
 BRONZE_INPUT_URI=s3://bucket-bronce/img/
 BRONZE_OUTPUT_URI=s3://bucket-bronce/
 SILVER_OUTPUT_URI=s3://bucket-plata/
-GOLD_OUTPUT_URI=s3://bucket-oro/
+GOLD_OUTPUT_URI=s3://bucket-oro/prefijo-completo/
 DATABRICKS_CATALOG=workspace
 ```
 
-Las imágenes se leen de `img/`. `BRONZE_INPUT_URI` puede apuntar al bucket o directamente a `img/`. Antes de escribir, cada tarea crea si falta `equipo7/` dentro del prefijo de salida de su capa. Si la URI ya termina en `equipo7/`, se utiliza tal cual. Las capas Delta quedan en `equipo7/fotos_precios`, `equipo7/precios` y `equipo7/precio_semanal`, entre otras. Después de escribir cada capa, el pipeline crea o actualiza tablas administradas en `workspace.equipo7`, como `bronze_fotos_precios`, `silver_precios` y `gold_precio_semanal`. Estas tablas son copias adicionales de los Delta de S3; se pueden consultar en Catalog Explorer y ocupan almacenamiento administrado por Unity Catalog.
+Las imágenes se leen de `img/`. `BRONZE_INPUT_URI` puede apuntar al bucket o directamente a `img/`. Bronce y Plata escriben bajo `equipo7/`. Para Oro, `GOLD_OUTPUT_URI` debe contener la ruta completa del prefijo de salida: el pipeline no le agrega una carpeta de equipo. Por ejemplo, con `GOLD_OUTPUT_URI=s3://bucket-oro/prefijo-completo/`, la tabla semanal queda en `s3://bucket-oro/prefijo-completo/precio_semanal`. Después de escribir cada capa, el pipeline crea o actualiza tablas administradas en `workspace.equipo7`, como `bronze_fotos_precios`, `silver_precios` y `gold_precio_semanal`. Estas tablas son copias adicionales de los Delta de S3; se pueden consultar en Catalog Explorer y ocupan almacenamiento administrado por Unity Catalog.
 
 Según el enunciado del curso, S3 guarda físicamente cada capa: Bronce recibe las fotos y conserva su contenido binario, Plata guarda precios limpios y rechazos, y Oro guarda indicadores y resultados para la API del Droplet. El workspace aloja el Git folder, el cómputo interactivo, el Job, los experimentos de MLflow y las tablas administradas del esquema del equipo. Este esquema usa `CREATE TABLE` y no requiere `CREATE EXTERNAL TABLE` sobre las external locations; los datos de S3 permanecen como fuente para cada capa y para la futura API.
 

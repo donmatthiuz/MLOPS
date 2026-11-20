@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from pipelines import databricks_layers
 
 CFG = {"source": {"catalog": "workspace", "bronze_input": "s3://bucket-bronce/", "bronze_output": "s3://bucket-bronce/",
-                  "silver_output": "s3://bucket-plata/", "gold_output": "s3://bucket-oro/"}}
+                  "silver_output": "s3://bucket-plata/", "gold_output": "s3://bucket-oro/ruta-oro/"}}
 
 
 def test_wti_ausente_devuelve_none_y_oro_sigue_sin_esa_variable():
@@ -36,7 +36,7 @@ def test_aplica_comentarios_a_la_tabla_administrada():
 
 
 def test_rutas_de_las_tablas_nuevas_de_oro():
-    assert databricks_layers._path(CFG, "gold", "predicciones") == "s3://bucket-oro/equipo7/predicciones"
+    assert databricks_layers._path(CFG, "gold", "predicciones") == "s3://bucket-oro/ruta-oro/predicciones"
     assert databricks_layers._table(CFG, "gold", "metricas_modelo") == "workspace.equipo7.gold_metricas_modelo"
 
 

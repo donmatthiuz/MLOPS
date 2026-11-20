@@ -16,20 +16,25 @@ class DatabricksPathsTest(unittest.TestCase):
             "bronze_input": "s3://bucket-bronce/",
             "bronze_output": "s3://bucket-bronce/",
             "silver_output": "s3://bucket-plata/",
-            "gold_output": "s3://bucket-oro/",
+            "gold_output": "s3://bucket-oro/ruta-oro/",
         }}
 
     def test_carpetas_de_entrada_y_salida(self) -> None:
         self.assertEqual(databricks_layers._image_dir(self.cfg), "s3://bucket-bronce/img")
-        for layer, bucket in (("bronze", "bronce"), ("silver", "plata"), ("gold", "oro")):
+        for layer, bucket in (("bronze", "bronce"), ("silver", "plata")):
             self.assertEqual(databricks_layers._path(self.cfg, layer, "datos"),
                              f"s3://bucket-{bucket}/equipo7/datos")
+        self.assertEqual(databricks_layers._path(self.cfg, "gold", "datos"),
+                         "s3://bucket-oro/ruta-oro/datos")
 
         self.cfg["source"]["bronze_input"] = "s3://bucket-bronce/img/"
         self.cfg["source"]["gold_output"] = "s3://bucket-oro/equipo7/"
         self.assertEqual(databricks_layers._image_dir(self.cfg), "s3://bucket-bronce/img")
         self.assertEqual(databricks_layers._path(self.cfg, "gold", "datos"),
                          "s3://bucket-oro/equipo7/datos")
+        self.cfg["source"]["gold_output"] = "s3://bucket-oro/otro-prefijo/"
+        self.assertEqual(databricks_layers._path(self.cfg, "gold", "datos"),
+                         "s3://bucket-oro/otro-prefijo/datos")
 
     def test_crea_carpeta_del_equipo_si_falta(self) -> None:
         mkdirs = Mock(return_value=True)

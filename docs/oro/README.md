@@ -7,7 +7,7 @@ Responde la pregunta central del proyecto: **¿el precio de cada combustible sub
 ## Qué hace
 
 1. Lee `silver_precios` (Delta en el bucket Plata) y, si existe, `bronze_petroleo_wti`. El WTI se convierte con `TRY_CAST(NULLIF(TRIM(DCOILWTICO), '') AS DOUBLE)`: en cómputo serverless rige el modo ANSI y un `CAST` simple de un día sin dato (texto vacío) lanzaría error.
-2. Calcula cinco tablas Delta en `s3://bucket-oro/equipo7/` y las copia a `workspace.equipo7.gold_*` (con `_sync_managed_table`). Al final aplica los `COMMENT` de tablas y columnas. Detalle de columnas en [contrato_api.md](contrato_api.md).
+2. Calcula cinco tablas Delta bajo el prefijo completo de `gold_output_uri` (o `GOLD_OUTPUT_URI` en ejecución manual) y las copia a `workspace.equipo7.gold_*` (con `_sync_managed_table`). Al final aplica los `COMMENT` de tablas y columnas. Detalle de columnas en [contrato_api.md](contrato_api.md).
 
 | Tabla | Contenido | Escritura |
 | --- | --- | --- |

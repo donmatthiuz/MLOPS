@@ -20,8 +20,6 @@ def table_uri(name: str) -> str:
     parsed = urlparse(base)
     if parsed.scheme != "s3" or not parsed.netloc:
         raise GoldUnavailable("GOLD_OUTPUT_URI debe ser una URI s3:// válida")
-    if parsed.path.rstrip("/").split("/")[-1] != "equipo7":
-        base += "/equipo7"
     return f"{base}/{name}"
 
 

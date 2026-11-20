@@ -1,6 +1,6 @@
 # Contrato Oro → API
 
-La API de `api/app/main.py` lee **solo** estas tablas, en Delta, desde `s3://bucket-oro/equipo7/<nombre>` con credenciales de solo lectura mediante `deltalake`. Las mismas tablas existen en Databricks como `workspace.equipo7.gold_<nombre>`.
+La API de `api/app/main.py` lee **solo** estas tablas, en Delta, desde `<GOLD_OUTPUT_URI>/<nombre>` con credenciales de solo lectura mediante `deltalake`. `GOLD_OUTPUT_URI` debe ser el mismo prefijo completo configurado como `gold_output_uri` en el Job. Las mismas tablas existen en Databricks como `workspace.equipo7.gold_<nombre>`.
 
 Reglas generales:
 

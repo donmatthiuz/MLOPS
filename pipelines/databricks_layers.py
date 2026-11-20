@@ -24,6 +24,8 @@ def _path(cfg: dict, layer: str, name: str) -> str:
 
 def _layer_dir(cfg: dict, layer: str) -> str:
     base = cfg["source"][f"{layer}_output"].rstrip("/")
+    if layer == "gold":
+        return base
     return base if base.rsplit("/", 1)[-1] == "equipo7" else base + "/equipo7"
 
 

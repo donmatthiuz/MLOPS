@@ -84,8 +84,10 @@ def test_s3_failure_is_not_exposed_to_public(monkeypatch) -> None:
         assert "private-bucket" not in response.text
 
 
-def test_gold_uri_is_scoped_to_team(monkeypatch) -> None:
-    monkeypatch.setenv("GOLD_OUTPUT_URI", "s3://bucket-oro/")
-    assert table_uri("predicciones") == "s3://bucket-oro/equipo7/predicciones"
+def test_gold_uri_uses_configured_prefix(monkeypatch) -> None:
+    monkeypatch.setenv("GOLD_OUTPUT_URI", "s3://bucket-oro/ruta-oro/")
+    assert table_uri("predicciones") == "s3://bucket-oro/ruta-oro/predicciones"
     monkeypatch.setenv("GOLD_OUTPUT_URI", "s3://bucket-oro/equipo7/")
     assert table_uri("predicciones") == "s3://bucket-oro/equipo7/predicciones"
+    monkeypatch.setenv("GOLD_OUTPUT_URI", "s3://bucket-oro/otro-prefijo/")
+    assert table_uri("predicciones") == "s3://bucket-oro/otro-prefijo/predicciones"

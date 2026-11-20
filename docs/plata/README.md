@@ -17,7 +17,7 @@ La capa Plata convierte cada foto de Bronce en filas limpias de precio: **una fi
 ## Tablas
 
 Delta en S3 (fuente de verdad) en `s3://cc3105-ag-869227452861-us-east-2-an/equipo7/<tabla>`, copiadas a tablas
-administradas de `workspace.equipo7` (misma convención que Bronce y Oro en `databricks_layers.py`; no requiere
+administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se configure y conserva el mismo esquema administrado; no requiere
 `CREATE EXTERNAL TABLE`).
 
 | Delta en S3 | Tabla en el catálogo | Contenido |
