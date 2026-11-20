@@ -7,7 +7,13 @@ from pathlib import Path
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pipelines"))
-from plata_vision import vistas_enfoque  # noqa: E402
+from plata_vision import resolver_modelo_enfoque, vistas_enfoque  # noqa: E402
+
+
+def test_claude_usa_nombre_de_servicio_unity_gateway() -> None:
+    assert resolver_modelo_enfoque("databricks-claude-sonnet-4-6") == ("system.ai.claude-sonnet-4-6", True)
+    assert resolver_modelo_enfoque("system.ai.claude-sonnet-4-6") == ("system.ai.claude-sonnet-4-6", True)
+    assert resolver_modelo_enfoque("databricks-llama-4-maverick") == ("databricks-llama-4-maverick", False)
 
 
 def test_vistas_incluyen_foto_y_paneles_solapados() -> None:

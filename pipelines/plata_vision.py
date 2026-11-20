@@ -4,6 +4,14 @@ from __future__ import annotations
 from PIL import Image, ImageOps
 
 
+def resolver_modelo_enfoque(modelo: str) -> tuple[str, bool]:
+    """Nombre de servicio de Unity Gateway para Claude; otros modelos usan Serving."""
+    nombre = modelo.strip()
+    if nombre.startswith("databricks-claude-"):
+        return "system.ai." + nombre.removeprefix("databricks-"), True
+    return nombre, nombre.startswith("system.ai.")
+
+
 def vistas_enfoque(imagen: Image.Image, *, contraste: bool = False) -> list[Image.Image]:
     """Foto completa y cuatro franjas solapadas que conservan visor y rótulo."""
     img = imagen.convert("RGB")

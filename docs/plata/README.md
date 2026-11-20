@@ -43,8 +43,8 @@ administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se conf
 - **Comparar modelos en los mismos recortes:** `modelo_enfoque` vacío usa `modelo` (Maverick por defecto).
   Para una prueba sin escritura, use `modo=refinar_referencias`, `modelo_enfoque=databricks-claude-sonnet-4-6`,
   `limite_fotos=5` y `escribir=no`. Compare las líneas `Cambio ...` y el conteo de referencias con la prueba de
-  Maverick. El endpoint alternativo requiere acceso en el workspace; si falla, el notebook conserva las lecturas
-  originales y registra el error de cada llamada.
+  Maverick. El notebook consulta Claude en Unity Gateway como `system.ai.claude-sonnet-4-6`; el modelo requiere
+  acceso en el workspace. Si falla, la prueba se detiene en la primera foto antes de escribir tablas.
 - Después de cambiar Plata hay que volver a ejecutar Oro.
 - Para aplicar esta regla a las extracciones existentes, actualice el Git folder en Databricks y ejecute con
   `modo=reaplicar_reglas`, `usar_referencia=si`, `referencia_csv` vacío y los parámetros habituales `origen` y

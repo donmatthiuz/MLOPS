@@ -56,7 +56,7 @@ dbutils.widgets.text("catalogo", "workspace", "Catálogo")
 dbutils.widgets.text("esquema", "equipo7", "Esquema")
 dbutils.widgets.dropdown("modo", "incremental", ["incremental", "reaplicar_reglas", "reprocesar_todo", "refinar_referencias"], "Modo")
 dbutils.widgets.text("modelo", "databricks-llama-4-maverick", "Endpoint del modelo de visión")
-dbutils.widgets.text("modelo_enfoque", "", "Endpoint para recortes (vacío = modelo principal)")
+dbutils.widgets.text("modelo_enfoque", "", "Modelo para recortes (vacío = modelo principal)")
 dbutils.widgets.text("lado_a", "1600", "Resolución lectura A (px)")
 dbutils.widgets.text("lado_b", "2560", "Resolución lectura B (px)")
 dbutils.widgets.text("precio_min", "15", "Precio mínimo válido (Q/gal)")
@@ -96,7 +96,7 @@ try:
                               motivo_rechazo, normalizar_modalidad, normalizar_ubicacion, orden_incoherente,
                               parsear_respuesta, precio_desde_display)
     from plata_referencia import buscar_referencia, cargar_referencias
-    from plata_vision import vistas_enfoque
+    from plata_vision import resolver_modelo_enfoque, vistas_enfoque
 except ImportError as exc:
     raise ImportError("No se encontraron plata_reglas.py y plata_referencia.py junto a este notebook (Git folder).") from exc
 
@@ -299,9 +299,18 @@ else:
     import pillow_heif
     from PIL import Image, ImageOps
     from databricks.sdk import WorkspaceClient
+    from openai import OpenAI
 
     pillow_heif.register_heif_opener()
     cliente = WorkspaceClient().serving_endpoints.get_open_ai_client()
+    modelo_enfoque, usa_gateway = resolver_modelo_enfoque(P["modelo_enfoque"] or P["modelo"])
+    cliente_enfoque = cliente
+    if usa_gateway:
+        contexto = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+        cliente_enfoque = OpenAI(
+            api_key=contexto.apiToken().get(),
+            base_url=f"{contexto.apiUrl().get().rstrip('/')}/ai-gateway/mlflow/v1",
+        )
 
     PROMPT = """La imagen es una foto tomada en una gasolinera de Guatemala (bomba, rótulo o tabla de precios).
 Lee cada visor de precio por galón con cuidado, dígito por dígito. Los visores LCD de 7 segmentos confunden
@@ -350,18 +359,22 @@ de mercado ni infieras un dígito borroso. Responde SOLO JSON con la misma estru
         for vista in vistas_enfoque(img, contraste=contraste):
             contenido.append({"type": "image_url", "image_url": {
                 "url": f"data:image/jpeg;base64,{a_jpeg_b64(vista, 1600)}"}})
-        modelo = P["modelo_enfoque"].strip() or P["modelo"]
-        parametros = {"model": modelo, "max_tokens": 700,
+        parametros = {"model": modelo_enfoque, "max_tokens": 700,
                       "messages": [{"role": "user", "content": contenido}]}
-        if modelo == "databricks-llama-4-maverick":
+        if modelo_enfoque == "databricks-llama-4-maverick":
             parametros["temperature"] = 0
-        r = cliente.chat.completions.create(**parametros)
+        r = cliente_enfoque.chat.completions.create(**parametros)
         return r.choices[0].message.content
+
+    class ErrorModeloEnfoque(RuntimeError):
+        pass
 
     def intentar_enfoque(img, contraste: bool, foto: str) -> str | None:
         try:
             return preguntar_enfoque(img, contraste)
         except Exception as exc:
+            if P["modelo_enfoque"].strip():
+                raise ErrorModeloEnfoque(f"El modelo de enfoque {modelo_enfoque} falló: {str(exc)[:250]}") from exc
             print(f"Lectura enfocada falló para {foto} (contraste={contraste}): {str(exc)[:160]}")
             return None
 
@@ -385,6 +398,8 @@ de mercado ni infieras un dígito borroso. Responde SOLO JSON con la misma estru
                                                "foto_sin_precios", "super_menor_que_regular") for row in r0))
             texto_fa = intentar_enfoque(img, False, fila.path) if necesita_enfoque else None
             texto_fb = intentar_enfoque(img, True, fila.path) if necesita_enfoque else None
+        except ErrorModeloEnfoque:
+            raise
         except Exception as exc:  # foto corrupta o endpoint caído: queda registrada y se reintenta en la próxima corrida
             rechazadas.append((fila.path, None, None, f"error_extraccion: {str(exc)[:200]}", ahora))
             continue
