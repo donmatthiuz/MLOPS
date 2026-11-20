@@ -4,12 +4,12 @@
 
 ---
 
-## José Gramajo · Diapositivas 1–2 (≈1 min 20 s)
+## José Gramajo · Diapositivas 1–2 (≈1 min)
 **1. Portada**
-> "Buenas tardes, somos el equipo 7 y les presentamos Gasolina GT: un sistema que, a partir de fotos de los precios en la gasolinera, predice si el precio de cada combustible sube, baja o se mantiene la semana siguiente, y lo publica en una API."
+> "Buenas tardes, somos el equipo 7 y les presentamos Gasolina GT: con fotos de los precios en la gasolinera predecimos si cada combustible sube, baja o se mantiene la semana siguiente, y lo publicamos en una API."
 
 **2. El problema**
-> "Cada martes el Ministerio de Energía y Minas publica los precios de referencia de súper, regular y diésel, vigentes de martes a lunes. Esos precios siguen al petróleo internacional y a veces a subsidios. A hogares, transportistas y negocios les sirve saber hacia dónde va el precio para decidir cuándo llenar el tanque. Nuestra pregunta es: para cada combustible, ¿la próxima semana sube, baja o se mantiene? Le paso la palabra a Mathew."
+> "Cada martes el MEM publica los precios de súper, regular y diésel, que siguen al petróleo internacional. Saber hacia dónde va el precio ayuda a decidir cuándo llenar el tanque. Nuestra pregunta: ¿la próxima semana sube, baja o se mantiene? Le paso a Mathew."
 
 ## Mathew Cordero · Diapositivas 3–4 (≈2 min)
 **3. La solución**
@@ -26,12 +26,12 @@
 **6. Plata**
 > "En Plata convertimos la foto en un precio. El OCR tradicional no servía para todas las bombas, así que usamos el modelo de visión Llama 4 Maverick dentro de Databricks. Cada foto se lee dos veces y aceptamos la lectura si coincide con monto entre galones del display o si las dos lecturas coinciden. Aplicamos 8 reglas de calidad y lo que falla va a una tabla de rechazos con su motivo. Cuando las lecturas no cuadran, usamos como respaldo el promedio mensual del MEM. Hoy hay 289 lecturas válidas y 12 rechazadas. En la revisión manual de 24 fotos, el 76.5 % de lo que guardamos está bien. El respaldo mensual nos sirve para entrenar, pero nunca para medir el modelo. Le paso a José."
 
-## José Gramajo · Diapositivas 7–8 (≈2 min 20 s)
+## José Gramajo · Diapositivas 7–8 (≈1 min 30 s)
 **7. Oro**
-> "En Oro calculamos los indicadores por semana, de martes a lunes como el MEM: precio promedio, variación contra la semana anterior y la dirección, con un umbral de diez centavos para no llamar alza a un redondeo. Generamos seis tablas Delta, todas con comentarios en Unity Catalog. Y si falta la semana anterior, la variación queda vacía: no comparamos contra un precio de hace meses."
+> "En Oro calculamos indicadores por semana, de martes a lunes como el MEM: precio promedio, variación y dirección, con un umbral de diez centavos. Son seis tablas Delta documentadas en Unity Catalog. Si falta la semana anterior, no inventamos la comparación."
 
 **8. El modelo**
-> "Para predecir la dirección de la semana siguiente usamos variables que solo miran al pasado: variaciones recientes, promedio móvil, la diferencia súper–diésel y el WTI. Comparamos regresión logística y árbol de decisión con validación temporal, nunca aleatoria, contra una línea base: repetir la dirección de la semana anterior. El resultado honesto es que tenemos 49 ejemplos, pero solo 4 semanas reales para probar: la logística empata en accuracy y pierde en F1, así que el sistema publica la línea base y lo registra en MLflow. No es un error del código, es falta de semanas seguidas con fotos. Le paso a Mathew."
+> "Usamos solo datos del pasado: variaciones recientes, promedio móvil y el WTI. Comparamos regresión logística y árbol con validación temporal, contra una línea base: repetir la dirección anterior. Con solo 4 semanas reales de prueba, el modelo no le gana a la línea base, así que el sistema publica la línea base y queda registrado en MLflow. Es falta de datos, no un error del código. Le paso a Mathew."
 
 ## Mathew Cordero · Diapositiva 9 (≈50 s)
 **9. Orquestación**
@@ -59,7 +59,7 @@
 ### Si preguntan…
 | Pregunta | Responde | Respuesta corta |
 |---|---|---|
-| ¿Por qué el modelo no le gana a la línea base? | José | Solo hay 4 semanas reales de prueba; con eso el resultado es casi azar. Hay señal: el WTI anticipó el 74 % de las bajas, pero no se puede demostrar con tan pocos casos. |
+| ¿Por qué el modelo no le gana a la línea base? | José | Solo hay 4 semanas reales de prueba; con eso el resultado es casi azar. |
 | ¿Por qué validación temporal? | José | Mezclar semanas filtraría información del futuro. |
 | ¿Qué tan confiable es la extracción? | Carlos | 76.5 % de precisión en lo guardado; descartamos lo dudoso. |
 | ¿Fotos repetidas? | Gustavo | MERGE por ruta: no se duplican. |
