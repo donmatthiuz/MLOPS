@@ -52,12 +52,14 @@
 - El OCR de 7 segmentos no servía para todas las bombas, y serverless no permite instalar Tesseract. Por eso usamos el modelo de visión **Llama 4 Maverick** dentro de Databricks.
 - Cada foto se lee **dos veces**. Se acepta una lectura si coincide con monto ÷ galones del display, o si las dos lecturas coinciden.
 - 8 reglas de calidad; lo que falla va a `silver_precios_rejected` con su motivo.
-- Resultado: 148 lecturas válidas y 150 rechazadas.
+- Si las dos lecturas no se concilian, se desempata o completa con el **promedio mensual del MEM** (Ciudad Capital, 2020–2026) y queda marcado en `metodo_validacion`.
+- Resultado actual: 289 lecturas válidas (134 completadas con el promedio mensual) y 12 rechazadas; 105 de 110 fotos aportan al menos un precio.
+- Ser transparentes: casi la mitad de los precios de Plata vienen del promedio mensual, por eso no se usan para medir el modelo.
 - **Revisión manual de 24 fotos:** precisión 76.5 % (lo que guardamos está bien) y cobertura 39.4 %.
-> Preferimos perder un dato antes que guardar uno inventado.
+> El respaldo mensual nos sirve para entrenar, pero nunca lo usamos como verdad para medir el modelo.
 
 ## 7 · Capa Oro — José (1 min)
-- Cinco tablas Delta con comentarios en cada columna: precio semanal, variación, variables, predicciones y métricas.
+- Seis tablas Delta con comentarios en cada columna: precio semanal, variación, variables, predicciones, métricas del modelo y métricas por combustible.
 - La semana va de martes a lunes, como el MEM. Un cambio de hasta Q0.10 cuenta como «se mantiene».
 - **Huecos:** solo comparamos con la semana inmediatamente anterior. Si no hay fotos esa semana, la variación queda vacía en vez de compararse con un precio de hace meses.
 
@@ -65,29 +67,30 @@
 - Variables que solo usan el pasado: variación de 1 a 4 semanas, promedio móvil, diferencia súper–diésel y WTI.
 - Candidatos: regresión logística y árbol de decisión, un modelo global con el combustible como variable.
 - Validación **temporal**: las últimas 4 semanas son prueba. La línea base es «se repite la dirección de la semana anterior».
-- **Resultado honesto:** cada ejemplo necesita 3 semanas seguidas con fotos. Hay pocos ejemplos, menos del mínimo de 20, así que el sistema **predice con la línea base y lo reporta**. Cuando haya más semanas, el clasificador se entrena y se compara solo.
+- **Resultado honesto:** con el respaldo mensual ya hay **49 ejemplos** y el modelo se entrena (45). Pero la prueba, solo con semanas de fotos reales, tiene **4 casos**: la logística empata en accuracy (0.50) y pierde en F1 macro (0.27 contra 0.33). Por regla, **se publica la línea base** y queda registrado en MLflow.
 - Todo queda registrado en MLflow.
 
 ## 9 · Orquestación — Mathew (50 s)
 - Job `equipo-07-pipeline` con tres tareas de notebook encadenadas.
 - Free Edition solo tiene serverless: no hay que encender clusters ni configurar autoterminación, y se paga solo el uso.
-- Programado los martes a las 09:40 (hora de Guatemala), con aviso por correo si falla. El 17-nov corrió dos veces con éxito: manual (4 min 9 s) y programada (3 min 56 s). Las rutas y el umbral son parámetros del Job.
+- Programado los martes a las 09:40 (hora de Guatemala), con aviso por correo si falla. El historial tiene 18 ejecuciones (16 exitosas); la programada del 17-nov corrió las tres tareas en 3 min 56 s. Las rutas y el umbral son parámetros del Job.
 
 ## 10 · API — Josué (50 s)
 - FastAPI en Docker en el Droplet, puerto 8007, `restart: unless-stopped`.
-- Lee Oro desde S3 con `deltalake` y credenciales de solo lectura en un `.env` que no está en Git.
-- Cinco endpoints. Swagger en `/docs`. Invitar al jurado a escanear el QR.
+- Lee Oro desde S3 con `deltalake` y credenciales de solo lectura en un `.env` que no está en Git. `/health` responde `ok`.
+- La misma imagen sirve una **interfaz web** en `/` con precios, histórico y pronóstico.
+- Cinco endpoints. Swagger en `/docs`. Invitar al jurado a escanear el QR: abre `/prediccion?combustible=super` en su teléfono (pueden cambiar `super` por `regular` o `diesel`).
 
 ## 11 · Demo en vivo — Mathew y Josué (5 min)
 1. **Databricks → Jobs & Pipelines → `equipo-07-pipeline` → Run now.** Mostrar las tareas Bronce → Plata → Oro. Si tarda, abrir una ejecución anterior ya terminada.
 2. Abrir la tarea **03_oro → Output**: parámetros, ejemplos válidos y `run MLflow`.
 3. **Experiments → `/Shared/equipo7-gasolina`**: la nueva corrida con parámetros y métricas.
 4. En el navegador: `http://159.65.111.14:8007/docs` → probar `/prediccion?combustible=super` y `/modelo/metricas`.
-   - **Ojo (estado al 17-nov, 11:50):** `/health` responde 503 porque falta el permiso de lectura de S3 que se pidió al catedrático. Si sigue así, mostrar Swagger y explicar el bloqueo con honestidad: la API está desplegada y el contrato de datos listo, solo falta la credencial de lectura.
+   - Abrir también la **interfaz web** `http://159.65.111.14:8007/`: precios por combustible, histórico y sección «Modelo».
 5. **Plan B** (si falla la red o la API): mostrar las capturas de `docs/job/evidencia/` y `docs/oro/evidencia/`.
 
 ## 12 · Lecciones — todo el equipo (40 s, una idea cada uno)
-- **José:** el dato manda; con pocas semanas consecutivas es mejor un modo «pocos datos» honesto que forzar un modelo.
+- **José:** el dato manda; con 4 casos de prueba ningún modelo puede demostrar que le gana a la línea base, y preferimos decirlo a inflar un número.
 - **Carlos:** validar en cada frontera; la cuarentena con motivo hace visibles los errores.
 - **Gustavo:** idempotencia; repetir el Job no duplica nada.
 - **Josué / Mathew:** las restricciones de la plataforma (serverless, permisos de S3) se resuelven temprano. Con más tiempo cargaríamos el histórico del MEM.
@@ -96,7 +99,8 @@
 | Pregunta | Respuesta corta | Responde |
 |---|---|---|
 | ¿Por qué no aleatorio el test? | En series de tiempo, mezclar semanas filtra información del futuro; validamos con semanas posteriores al entrenamiento. | José |
-| ¿Su modelo funciona? | Hoy predice con la línea base porque hay pocos ejemplos; el pipeline compara y elige solo cuando haya datos. Preferimos reportarlo a mostrar un número inflado. | José |
+| ¿Su modelo funciona? | Entrena y se compara en cada ejecución; en la prueba (4 casos reales) no supera a la línea base, así que se publica la base. Con el histórico semanal del MEM tendríamos cientos de ejemplos para una prueba seria. | José |
+| ¿Por qué no evaluar con los precios mensuales? | Un promedio mensual repite el mismo precio todas las semanas del mes: inventaría «se mantiene». Solo medimos contra fotos reales. | José |
 | ¿Qué tan confiable es la extracción? | 76.5 % de precisión en lo que guardamos y 39.4 % de cobertura. Descartamos lo dudoso a propósito. | Carlos |
 | ¿Qué pasa si suben fotos repetidas? | MERGE por ruta en Bronce: no se duplican; se verifica en cada corrida. | Gustavo |
 | ¿Por qué serverless y no un job cluster? | Free Edition no ofrece clusters clásicos; serverless cobra solo el uso y arranca sin configurar nodos. | Mathew |
