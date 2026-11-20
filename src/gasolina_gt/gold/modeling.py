@@ -50,8 +50,11 @@ def pliegues_temporales(train: pd.DataFrame, n_pliegues: int = N_PLIEGUES) -> li
     bloques = np.array_split(semanas, n_pliegues + 1)
     pliegues = []
     for i in range(n_pliegues):
-        entrena = train[train["semana"].isin(np.concatenate(bloques[: i + 1]))]
         valida = train[train["semana"].isin(bloques[i + 1])]
+        # La etiqueta de t usa el precio de t+1; excluimos la semana que
+        # termina justo al comenzar la validación.
+        entrena = train[train["semana"].isin(np.concatenate(bloques[: i + 1]))
+                        & (train["semana"] + SEMANA < valida["semana"].min())]
         if entrena["direccion_siguiente"].nunique() >= 2 and len(valida):
             pliegues.append((entrena.index, valida.index))
     return pliegues
@@ -190,9 +193,19 @@ def _pronostico_base(features: pd.DataFrame) -> pd.DataFrame:
     return _salida(ultimas, prediccion, np.full(len(ultimas), np.nan), modelos, "pronostico", con_real=False)
 
 
-def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams) -> ResultadoModelo:
+def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams,
+                     features_evaluacion: Optional[pd.DataFrame] = None) -> ResultadoModelo:
     ej = ejemplos_etiquetados(features)
-    train, test = dividir_temporal(ej, params.semanas_test)
+    if features_evaluacion is None:
+        train, test = dividir_temporal(ej, params.semanas_test)
+        evaluables = ej
+    else:
+        # Los respaldos mensuales aportan ejemplos de entrenamiento, pero el
+        # desempeño se mide solo contra semanas con tres precios observados.
+        evaluables = ejemplos_etiquetados(features_evaluacion)
+        _, test = dividir_temporal(evaluables, params.semanas_test)
+        train = (ej[ej["semana"] + SEMANA < test["semana"].min()].copy()
+                 if len(test) else ej.iloc[:0].copy())
 
     razones = []
     if len(ej) < params.min_ejemplos:
@@ -202,16 +215,18 @@ def entrenar_y_evaluar(features: pd.DataFrame, params: GoldParams) -> ResultadoM
     if train["direccion_siguiente"].nunique() < 2:
         razones.append("el entrenamiento no tiene al menos 2 clases")
     if test.empty:
-        razones.append("no hay semanas de prueba")
+        razones.append("no hay semanas de prueba con lecturas observadas")
 
     if razones:
-        base = (metricas_clasificacion(ej["direccion_siguiente"], ej["direccion_actual"]) if len(ej) else None)
+        base = (metricas_clasificacion(evaluables["direccion_siguiente"], evaluables["direccion_actual"])
+                if len(evaluables) else None)
         return ResultadoModelo(
             modelo_elegido=LINEA_BASE, usa_linea_base=True, modo_pocos_datos=True,
             motivo="Modo pocos datos: " + "; ".join(razones) + ". Se predice con la línea base, sin entrenar.",
             metricas_modelo=None, metricas_linea_base=base, candidato=None, validado_en_train=False, cv_f1={},
-            n_ejemplos=len(ej), n_train=0, n_test=len(ej), semana_train=(pd.NaT, pd.NaT), semana_test=_rango(ej),
-            backtest=_linea_base(ej, "backtest", con_real=True), pronostico=_pronostico_base(features),
+            n_ejemplos=len(ej), n_train=0, n_test=len(evaluables),
+            semana_train=(pd.NaT, pd.NaT), semana_test=_rango(evaluables),
+            backtest=_linea_base(evaluables, "backtest", con_real=True), pronostico=_pronostico_base(features),
         )
 
     candidato, validado, cv_f1 = _elegir_candidato(train, params.semilla)

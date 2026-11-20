@@ -192,11 +192,11 @@ def gold(cfg: dict, params=None) -> None:
     silver = (spark.read.format("delta").load(silver_path)
               .select("fecha", "combustible", "precio_q_galon", "metodo_validacion").toPandas())
     prices = silver
-    # Los promedios mensuales y los desempates apoyados en ellos no son etiquetas
-    # independientes para medir desempeño semanal del modelo.
+    # Se usan respaldos mensuales para entrenar cuando falta una lectura, pero
+    # la evaluación usa solo semanas formadas por lecturas de fotos observadas.
     metodos = silver["metodo_validacion"].fillna("")
-    prices_modelo = silver.loc[~metodos.str.startswith("referencia_"),
-                               ["fecha", "combustible", "precio_q_galon"]]
+    prices_evaluacion = silver.loc[~metodos.str.startswith("referencia_"),
+                                   ["fecha", "combustible", "precio_q_galon"]]
     wti = _read_wti(spark, cfg) if params.usar_wti else None
     predictions_path = _path(cfg, "gold", "predicciones")
     previous = (spark.read.format("delta").load(predictions_path).toPandas()
@@ -205,7 +205,7 @@ def gold(cfg: dict, params=None) -> None:
     tracker = partial(registrar_experimento, experimento=params.experimento_mlflow,
                       reports_dir=resolve_path(reports) if reports else None)
 
-    result = compute_gold(prices, wti, params, silver_modelo=prices_modelo,
+    result = compute_gold(prices, wti, params, silver_evaluacion=prices_evaluacion,
                           previas=previous, tracker=tracker)
     if result.metricas_modelo.iloc[0].run_id_mlflow is None:
         raise RuntimeError("Oro: MLflow no registró la ejecución; revise el experimento y las dependencias del Job")

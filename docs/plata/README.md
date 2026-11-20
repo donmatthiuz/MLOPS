@@ -67,11 +67,11 @@ Se eligió **Llama 4 Maverick** y, como puede confundir dígitos, cada foto se l
 se usa el promedio de **autoservicio** y el método termina en `_autoservicio_supuesto`. El CSV cubre 2020-01 a
 2026-09; para fechas posteriores no se extrapola un mes anterior y se mantiene el rechazo habitual si las lecturas
 siguen sin conciliar. Si ninguna respuesta identifica el combustible, se conserva `foto_sin_precios`: el promedio no
-permite saber qué visor había en la foto. Los métodos que empiezan en `referencia_` no se usan como etiquetas para
-entrenar ni evaluar los modelos de Oro. En el resumen semanal solo se usan cuando no hay una lectura observada del
-mismo combustible y semana. Por tanto, agregar estos
-respaldos no garantiza que MLflow deje de usar la línea base: siguen haciendo falta suficientes semanas observadas
-consecutivas.
+permite saber qué visor había en la foto. Oro usa los métodos que empiezan en `referencia_` para completar
+semanas de entrenamiento, pero mide el desempeño únicamente en semanas formadas por lecturas observadas.
+En el resumen semanal se usa el respaldo solo cuando no hay una lectura observada del mismo combustible y semana.
+Agregar respaldos no garantiza que MLflow deje de usar la línea base: siguen haciendo falta suficientes ejemplos
+antes de las últimas semanas observadas y al menos dos clases en entrenamiento.
 
 ## Reglas de calidad
 

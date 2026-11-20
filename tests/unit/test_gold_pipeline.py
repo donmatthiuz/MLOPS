@@ -75,6 +75,39 @@ def test_referencia_aparece_en_precio_semanal_pero_no_entrena_ni_evalua() -> Non
     assert res.metricas_modelo.iloc[0].n_ejemplos < 3
 
 
+def test_referencias_entran_al_entrenamiento_pero_prueba_usa_lecturas_observadas() -> None:
+    silver = serie_alternante(30)
+    silver["metodo_validacion"] = "consenso"
+    respaldo = pd.to_datetime(silver["fecha"]).between(martes(5), martes(13))
+    silver.loc[respaldo, "metodo_validacion"] = "referencia_mensual"
+    observadas = silver.loc[~respaldo, ["fecha", "combustible", "precio_q_galon"]]
+
+    res = compute_gold(silver, None, GoldParams(), silver_evaluacion=observadas,
+                       generado_en=T0, log=lambda *_: None)
+
+    assert not res.resultado.modo_pocos_datos
+    assert res.resultado.n_train >= 12
+    assert res.resultado.n_ejemplos > len(observadas)
+    assert res.resultado.n_test == 12  # cuatro semanas observadas por tres combustibles
+    assert martes(8) in set(res.features_modelo["semana"])
+    assert res.resultado.semana_test[0] > martes(13)
+    assert res.resultado.semana_train[1] + pd.Timedelta(days=7) < res.resultado.semana_test[0]
+
+
+def test_sin_lecturas_observadas_no_registra_metricas_de_referencia_como_desempeno() -> None:
+    silver = precios_silver({"super": {0: 20, 1: 21, 2: 22, 3: 23}})
+    silver["metodo_validacion"] = "referencia_mensual"
+    observadas = silver.iloc[:0][["fecha", "combustible", "precio_q_galon"]]
+
+    res = compute_gold(silver, None, GoldParams(), silver_evaluacion=observadas,
+                       generado_en=T0, log=lambda *_: None)
+
+    assert res.resultado.modo_pocos_datos
+    assert res.resultado.n_ejemplos == 2
+    assert res.resultado.n_test == 0
+    assert res.resultado.metricas_linea_base is None
+
+
 def test_precio_semanal_prefiere_lectura_observada_al_promedio_mensual() -> None:
     silver = precios_silver({"regular": {0: 30, 1: 31}})
     silver["metodo_validacion"] = "consenso"
