@@ -21,6 +21,7 @@ from .weekly import SEMANA
 CANDIDATOS = ("regresion_logistica", "arbol_decision")
 LINEA_BASE = "linea_base"
 LINEA_BASE_RESPALDO = "linea_base_respaldo"
+MODELOS_BACKTEST = (LINEA_BASE, *CANDIDATOS)
 N_PLIEGUES = 3
 COLUMNAS_SALIDA = ["semana", "combustible", "prediccion", "probabilidad", "modelo", "direccion_real", "tipo"]
 
@@ -201,6 +202,45 @@ def _elegir_candidato(train: pd.DataFrame, semilla: int,
         puntajes[nombre], mejores_ajustes[nombre] = max(resultados, key=lambda resultado: resultado[0])
     elegido = max(CANDIDATOS, key=lambda n: (puntajes[n], -CANDIDATOS.index(n)))  # empate: logística
     return elegido, True, puntajes, mejores_ajustes[elegido], n_validacion
+
+
+def backtest_por_combustible(features: pd.DataFrame, observados: pd.DataFrame,
+                            params: GoldParams) -> pd.DataFrame:
+    """Predice triples observados con modelos fijos entrenados solo con semanas anteriores.
+
+    Es un diagnóstico adicional: no elige hiperparámetros ni cambia el modelo
+    publicado. Cada combustible usa exactamente las mismas semanas para los
+    tres métodos, de modo que sus métricas sean comparables.
+    """
+    entrenamiento = ejemplos_etiquetados(features)
+    prueba = ejemplos_etiquetados(observados)
+    columnas = ["combustible", "modelo", "n_test", "accuracy", "f1_macro",
+                "semana_inicio", "semana_fin"]
+    votos: dict[tuple[str, str], list[tuple[object, object, object]]] = {}
+    for semana in np.sort(prueba["semana"].unique()):
+        pasado = entrenamiento[entrenamiento["semana"] + SEMANA < semana]
+        if len(pasado) < params.min_train or pasado["direccion_siguiente"].nunique() < 2:
+            continue
+        filas = prueba[prueba["semana"] == semana]
+        predicciones = {LINEA_BASE: filas["direccion_actual"].to_numpy()}
+        for nombre in CANDIDATOS:
+            modelo = _ajustar(nombre, pasado, params.semilla)
+            predicciones[nombre], _ = _predecir(modelo, filas)
+        for i, fila in enumerate(filas.itertuples()):
+            for nombre in MODELOS_BACKTEST:
+                votos.setdefault((fila.combustible, nombre), []).append(
+                    (fila.semana, fila.direccion_siguiente, predicciones[nombre][i]))
+
+    salida = []
+    for combustible in sorted(prueba["combustible"].unique()):
+        for nombre in MODELOS_BACKTEST:
+            casos = votos.get((combustible, nombre), [])
+            metricas = metricas_clasificacion([r[1] for r in casos], [r[2] for r in casos]) if casos else {}
+            salida.append({"combustible": combustible, "modelo": nombre, "n_test": len(casos),
+                           "accuracy": metricas.get("accuracy"), "f1_macro": metricas.get("f1_macro"),
+                           "semana_inicio": min((r[0] for r in casos), default=pd.NaT),
+                           "semana_fin": max((r[0] for r in casos), default=pd.NaT)})
+    return pd.DataFrame(salida, columns=columnas)
 
 
 def _ultimas_semanas(features: pd.DataFrame) -> pd.DataFrame:

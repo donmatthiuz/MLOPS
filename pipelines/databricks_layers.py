@@ -214,7 +214,9 @@ def gold(cfg: dict, params=None) -> None:
         _write_gold_table(spark, cfg, name, getattr(result, name))
     _merge_predictions(spark, cfg, result.predicciones)
     _write_gold_table(spark, cfg, "metricas_modelo", result.metricas_modelo, mode="append")
-    for name in ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo"):
+    _write_gold_table(spark, cfg, "metricas_combustible", result.metricas_combustible)
+    for name in ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo",
+                 "metricas_combustible"):
         _sync_managed_table(spark, cfg, "gold", name)
         _apply_gold_comments(spark, cfg, name)
     metrics = result.metricas_modelo.iloc[0]

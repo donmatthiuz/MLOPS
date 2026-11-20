@@ -10,16 +10,17 @@ from gasolina_gt.gold.pipeline import compute_gold
 from tests.unit.gold_helpers import martes, precios_silver, serie_alternante, wti_crudo
 
 T0 = pd.Timestamp("2026-11-15 10:00:00")
-TABLAS = ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo")
+TABLAS = ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo",
+          "metricas_combustible")
 
 
 def _tablas(res):
     return {"precio_semanal": res.precio_semanal, "variacion_semanal": res.variacion_semanal,
             "features_modelo": res.features_modelo, "predicciones": res.predicciones,
-            "metricas_modelo": res.metricas_modelo}
+            "metricas_modelo": res.metricas_modelo, "metricas_combustible": res.metricas_combustible}
 
 
-def test_genera_las_cinco_tablas_con_los_datos_alternantes():
+def test_genera_las_seis_tablas_con_los_datos_alternantes():
     res = compute_gold(serie_alternante(30), wti_crudo(30), GoldParams(), generado_en=T0, log=lambda *_: None)
     tablas = _tablas(res)
     assert all(len(t) > 0 for t in tablas.values())

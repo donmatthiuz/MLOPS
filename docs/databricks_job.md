@@ -34,7 +34,12 @@ SELECT modelo_elegido, modo_pocos_datos, n_ejemplos, run_id_mlflow, usa_wti, _ge
 FROM workspace.equipo7.gold_metricas_modelo ORDER BY _generado_en DESC LIMIT 1;
 SELECT semana, combustible, tipo, prediccion, probabilidad, direccion_real
 FROM workspace.equipo7.gold_predicciones ORDER BY semana DESC, combustible, tipo;
+SELECT combustible, modelo, n_test, accuracy, f1_macro, semana_inicio, semana_fin
+FROM workspace.equipo7.gold_metricas_combustible
+ORDER BY combustible, modelo;
 ```
+
+`gold_metricas_combustible` compara la línea base, la regresión logística y el árbol en los mismos triples observados de cada combustible. Cada predicción del backtest se entrena solo con semanas anteriores; `n_test=0` indica que todavía no hay suficientes ejemplos previos para medir ese combustible. Es un diagnóstico adicional y no cambia el modelo publicado en `gold_predicciones`.
 
 Verificar además el experimento `/Shared/equipo7-gasolina` en **Experiments** y los comentarios de las tablas Oro con `DESCRIBE TABLE EXTENDED workspace.equipo7.gold_predicciones`. El código de Oro ahora falla antes de escribir si MLflow no registra la ejecución; también falla si no puede aplicar los comentarios.
 

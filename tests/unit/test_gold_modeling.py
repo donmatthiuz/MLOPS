@@ -6,7 +6,7 @@ import pytest
 
 from gasolina_gt.gold.features import construir_features
 from gasolina_gt.gold.modeling import (
-    contar_triples, dividir_temporal, ejemplos_etiquetados, entrenar_y_evaluar, metricas_clasificacion,
+    backtest_por_combustible, contar_triples, dividir_temporal, ejemplos_etiquetados, entrenar_y_evaluar, metricas_clasificacion,
     pliegues_temporales, supera_linea_base,
 )
 from gasolina_gt.gold.params import GoldParams
@@ -192,6 +192,20 @@ def test_no_optimiza_con_menos_de_seis_ejemplos_observados(alternante):
     assert r.cv_f1 == {}
     assert r.candidato == "regresion_logistica"
     assert r.n_validacion_cv < 6
+
+
+def test_backtest_por_combustible_usa_las_mismas_semanas_sin_futuro(alternante):
+    observados = alternante[alternante["semana"] <= martes(20)].copy()
+    base = backtest_por_combustible(alternante, observados, GoldParams())
+    assert set(base["combustible"]) == {"super", "regular", "diesel"}
+    assert set(base["modelo"]) == {"linea_base", "regresion_logistica", "arbol_decision"}
+    assert base.groupby("combustible")["n_test"].nunique().eq(1).all()
+    assert base["n_test"].gt(0).all()
+
+    cambiado = alternante.copy()
+    cambiado.loc[cambiado["semana"] > martes(20), "direccion_siguiente"] = "se_mantiene"
+    despues = backtest_por_combustible(cambiado, observados, GoldParams())
+    pd.testing.assert_frame_equal(base, despues)
 
 
 def test_mismo_resultado_en_dos_ejecuciones(alternante):

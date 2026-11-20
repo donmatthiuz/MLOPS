@@ -69,14 +69,17 @@ def test_gold_orquesta_lectura_calculo_escritura_sincronizacion_y_comentarios(mo
     with patch.dict(sys.modules, {"delta": types.ModuleType("delta"), "delta.tables": delta_tables}):
         databricks_layers.gold(cfg, params=GoldParams())
 
-    assert [n for n, _, _ in escritas] == ["precio_semanal", "variacion_semanal", "features_modelo", "metricas_modelo"]
+    assert [n for n, _, _ in escritas] == ["precio_semanal", "variacion_semanal", "features_modelo",
+                                        "metricas_modelo", "metricas_combustible"]
     assert dict((n, m) for n, m, _ in escritas)["metricas_modelo"] == "append"   # historial de ejecuciones
     assert mezcladas and mezcladas[0] > 0
     assert sincronizadas == [("gold", n) for n in
-                             ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo")]
+                             ("precio_semanal", "variacion_semanal", "features_modelo", "predicciones",
+                              "metricas_modelo", "metricas_combustible")]
     comentadas = {c.args[0].split("gold_")[1].split(" ")[0] for c in spark.sql.call_args_list
                   if c.args[0].startswith("COMMENT ON TABLE")}
-    assert comentadas == {"precio_semanal", "variacion_semanal", "features_modelo", "predicciones", "metricas_modelo"}
+    assert comentadas == {"precio_semanal", "variacion_semanal", "features_modelo", "predicciones",
+                          "metricas_modelo", "metricas_combustible"}
 
 
 def test_gold_falla_antes_de_escribir_si_mlflow_no_registra(monkeypatch):

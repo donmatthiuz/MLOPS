@@ -7,7 +7,7 @@ from typing import Callable, Optional
 import pandas as pd
 
 from .features import COLUMNAS_FEATURES, construir_features
-from .modeling import ResultadoModelo, contar_triples, entrenar_y_evaluar
+from .modeling import ResultadoModelo, backtest_por_combustible, contar_triples, entrenar_y_evaluar
 from .params import GoldParams
 from .predictions import combinar_predicciones
 from .schemas import ordenar
@@ -23,17 +23,25 @@ class GoldResult:
     features_modelo: pd.DataFrame
     predicciones: pd.DataFrame
     metricas_modelo: pd.DataFrame
+    metricas_combustible: pd.DataFrame
     resultado: ResultadoModelo
 
 
-def _metricas(r: ResultadoModelo) -> dict:
+def _metricas(r: ResultadoModelo, por_combustible: pd.DataFrame) -> dict:
     m, b = r.metricas_modelo or {}, r.metricas_linea_base or {}
-    return {"accuracy_modelo": m.get("accuracy"), "f1_macro_modelo": m.get("f1_macro"),
+    salida = {"accuracy_modelo": m.get("accuracy"), "f1_macro_modelo": m.get("f1_macro"),
             "accuracy_linea_base": b.get("accuracy"), "f1_macro_linea_base": b.get("f1_macro"),
             "cv_f1_regresion_logistica": r.cv_f1.get("regresion_logistica"),
             "cv_f1_arbol_decision": r.cv_f1.get("arbol_decision"),
             "n_ejemplos": r.n_ejemplos, "n_train": r.n_train, "n_test": r.n_test,
             "n_validacion_cv": r.n_validacion_cv}
+    for fila in por_combustible.itertuples():
+        prefijo = f"rolling_{fila.modelo}_{fila.combustible}"
+        salida[f"{prefijo}_n"] = fila.n_test
+        if fila.n_test:
+            salida[f"{prefijo}_accuracy"] = fila.accuracy
+            salida[f"{prefijo}_f1_macro"] = fila.f1_macro
+    return salida
 
 
 def _parametros(params: GoldParams, r: ResultadoModelo, usa_wti: bool,
@@ -85,6 +93,10 @@ def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params
 
     r = entrenar_y_evaluar(features, params, features_evaluacion)
     log(f"Oro: {r.motivo}")
+    rolling = backtest_por_combustible(features, features_evaluacion if features_evaluacion is not None else features,
+                                      params)
+    log("Oro: backtest temporal observado por combustible: " + ", ".join(
+        f"{fila.combustible}={fila.n_test}" for fila in rolling.itertuples() if fila.modelo == "linea_base"))
 
     reales = variacion_reales.loc[variacion_reales["direccion"].notna(),
                                  ["semana", "combustible", "direccion"]]
@@ -94,10 +106,10 @@ def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params
     run_id = None
     if tracker is not None:
         run_id = tracker(_parametros(params, r, usa_wti, silver_evaluacion is not None,
-                                    bool(referencias_en_datos)), _metricas(r),
+                                    bool(referencias_en_datos)), _metricas(r, rolling),
                          None if r.usa_linea_base else r.modelo_ajustado)
 
-    m = _metricas(r)
+    m = _metricas(r, rolling)
     fila = {
         "run_id_mlflow": run_id, "modelo_elegido": r.modelo_elegido, "usa_linea_base": r.usa_linea_base,
         "modo_pocos_datos": r.modo_pocos_datos, "motivo": r.motivo, "candidato": r.candidato,
@@ -116,5 +128,6 @@ def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params
         features_modelo=ordenar(estampar(features), "features_modelo"),
         predicciones=ordenar(predicciones, "predicciones"),
         metricas_modelo=ordenar(pd.DataFrame([fila]), "metricas_modelo"),
+        metricas_combustible=ordenar(estampar(rolling), "metricas_combustible"),
         resultado=r,
     )
