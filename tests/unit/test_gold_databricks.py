@@ -51,6 +51,7 @@ def test_gold_orquesta_lectura_calculo_escritura_sincronizacion_y_comentarios(mo
 
     spark = Mock()
     silver = serie_alternante(30)
+    silver["metodo_validacion"] = "consenso"
     spark.read.format.return_value.load.return_value.select.return_value.toPandas.return_value = silver
     spark.catalog.tableExists.return_value = False                      # sin WTI en Bronce
     delta_tables = types.ModuleType("delta.tables")
@@ -88,7 +89,9 @@ def test_gold_falla_antes_de_escribir_si_mlflow_no_registra(monkeypatch):
     from tests.unit.gold_helpers import serie_alternante
 
     spark = Mock()
-    spark.read.format.return_value.load.return_value.select.return_value.toPandas.return_value = serie_alternante(30)
+    silver = serie_alternante(30)
+    silver["metodo_validacion"] = "consenso"
+    spark.read.format.return_value.load.return_value.select.return_value.toPandas.return_value = silver
     spark.catalog.tableExists.return_value = False
     delta_tables = types.ModuleType("delta.tables")
     delta_tables.DeltaTable = Mock()

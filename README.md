@@ -52,6 +52,8 @@ Plata usa el notebook de visión `02_silver.py`; **no use `databricks_layers.sil
 
 En `pipelines/02_silver.py`, use el widget `modo=incremental` para fotos nuevas, `modo=reaplicar_reglas` para recalcular Plata desde las extracciones ya guardadas, o `modo=reprocesar_todo` para volver a enviar todas las fotos al modelo de visión. Después ejecute `pipelines/03_gold.py`. No hace falta repetir Bronce si las imágenes no cambiaron. El Job normal usa `incremental` y recalcula Oro en cada ejecución.
 
+Plata puede usar el promedio mensual del MEM de Ciudad Capital como desempate o respaldo (`usar_referencia=si`); los precios están en `docs/plata/precios_mem_capital_mensual.csv`. Se asume que todas las fotos son de Ciudad Capital y que las de modalidad desconocida son de autoservicio. Consulte [la guía de Plata](docs/plata/README.md) para aplicar la regla a las extracciones existentes y ver sus límites.
+
 ## API en DigitalOcean
 
 La API FastAPI lee directamente los Delta del prefijo Oro en S3 con `deltalake`. Docker aísla sus dependencias y `restart: unless-stopped` la mantiene en marcha al cerrar SSH. El contenedor solo consulta S3; no escribe tablas ni necesita acceso a Bronce o Plata. El `.env` del servidor, excluido de Git, contiene `GOLD_OUTPUT_URI`, `API_PORT` y las credenciales AWS de solo lectura (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`); `api/.env.example` es la plantilla. La guía paso a paso está en [`docs/api_despliegue.md`](docs/api_despliegue.md). El puerto externo predeterminado es `8007`; ajuste `API_PORT` si el curso asignó otro `80XX`.

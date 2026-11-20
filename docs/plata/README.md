@@ -10,6 +10,8 @@ La capa Plata convierte cada foto de Bronce en filas limpias de precio: **una fi
 |---|---|
 | `pipelines/02_silver.py` | Notebook/tarea del Job. Extrae, valida y carga con `MERGE`. |
 | `pipelines/plata_reglas.py` | Reglas de calidad y normalización (funciones puras). |
+| `pipelines/plata_referencia.py` | Carga y consulta de promedios mensuales del MEM. |
+| `docs/plata/precios_mem_capital_mensual.csv` | Transcripción del [PDF del MEM](../PRECIOS-PROMEDIO-MENSUAL-CONSUMIDOR-FINAL-EN-CIUDAD-CAPITAL-2026-09.pdf): enero de 2020 a septiembre de 2026. |
 | `tests/unit/test_plata_reglas.py` | Pruebas de las reglas (`pytest`). |
 | `pipelines/plata_revision_manual.py` | Galería de la muestra y cálculo de exactitud. |
 | `docs/plata/revision_manual.csv` | Precios reales anotados a mano para la muestra. |
@@ -36,6 +38,9 @@ administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se conf
     `precios_rejected` (~1 min). Usar cuando cambia una regla.
   - `reprocesar_todo`: vuelve a enviar todas las fotos al modelo (~20 min para 110 fotos).
 - Después de cambiar Plata hay que volver a ejecutar Oro.
+- Para aplicar esta regla a las extracciones existentes, actualice el Git folder en Databricks y ejecute con
+  `modo=reaplicar_reglas`, `usar_referencia=si`, `referencia_csv` vacío y los parámetros habituales `origen` y
+  `silver_uri`. Luego ejecute `pipelines/03_gold.py`. No necesita repetir Bronce ni llamar de nuevo al modelo.
 
 ## Cómo se extrae el precio
 
@@ -53,7 +58,20 @@ Se eligió **Llama 4 Maverick** y, como puede confundir dígitos, cada foto se l
 
 1. Si una lectura coincide con el precio que se deduce del **display de la bomba** (monto ÷ galones; p. ej. Q100.00 ÷ 3.664 gal = Q27.29), se acepta (`metodo_validacion = display_bomba`).
 2. Si las dos lecturas coinciden (±Q0.01), se acepta (`consenso`).
-3. Si no, se rechaza como `lecturas_inconsistentes`. Preferimos perder un dato a guardar uno inventado.
+3. Si discrepan, se escoge la lectura más cercana al promedio mensual del MEM del mismo mes, combustible y modalidad,
+   siempre que esté a Q3 o menos de ese promedio. Si hay empate, ambas están más lejos o no se pudo leer un número,
+   se usa el promedio mensual (`referencia_mensual`). Si el orden súper ≥ regular falla, la referencia corrige la
+   lectura atípica o respalda ambas. Cada caso queda marcado en `metodo_validacion`.
+
+**Supuestos del respaldo:** todas las fotos se tratan como tomadas en Ciudad Capital. Si la foto no indica modalidad,
+se usa el promedio de **autoservicio** y el método termina en `_autoservicio_supuesto`. El CSV cubre 2020-01 a
+2026-09; para fechas posteriores no se extrapola un mes anterior y se mantiene el rechazo habitual si las lecturas
+siguen sin conciliar. Si ninguna respuesta identifica el combustible, se conserva `foto_sin_precios`: el promedio no
+permite saber qué visor había en la foto. Los métodos que empiezan en `referencia_` no se usan como etiquetas para
+entrenar ni evaluar los modelos de Oro. En el resumen semanal solo se usan cuando no hay una lectura observada del
+mismo combustible y semana. Por tanto, agregar estos
+respaldos no garantiza que MLflow deje de usar la línea base: siguen haciendo falta suficientes semanas observadas
+consecutivas.
 
 ## Reglas de calidad
 
@@ -63,9 +81,9 @@ Se eligió **Llama 4 Maverick** y, como puede confundir dígitos, cada foto se l
 | La fecha no es futura | `fecha_futura` |
 | Si la foto está en una carpeta de año (`img/2024/…`), su fecha cae en ese año (±90 días: las carpetas incluyen fotos de fin del año anterior) | `fecha_no_coincide_con_carpeta` |
 | Combustible del catálogo: `super`, `regular`, `diesel` (V-Power y otras premium quedan fuera) | `combustible_fuera_catalogo` |
-| Precio legible | `precio_ilegible` |
+| Precio legible o promedio mensual disponible | `sin_lectura` / `precio_ilegible` si no hay respaldo |
 | Precio entre **Q15 y Q60** por galón | `precio_fuera_rango` |
-| Las dos lecturas coinciden (o una coincide con el display) | `lecturas_inconsistentes` / `sin_lectura` |
+| Las dos lecturas coinciden, una coincide con el display o hay referencia mensual | `lecturas_inconsistentes` / `sin_lectura` si no hay respaldo |
 | La súper no puede costar menos que la regular en la misma foto | `super_menor_que_regular` |
 
 **Rango Q15–Q60:** en las fotos de 2023–2026 se observaron precios entre Q24.79 y Q43.99 por galón; los de 2026 (Q40–Q44) están confirmados con el display de la bomba en varias fotos. El margen evita descartar alzas reales y aun así filtra lecturas absurdas, como galones (3.66) o montos (Q100) leídos como precio. El rango es un parámetro del Job (`precio_min`, `precio_max`). La primera ejecución usó Q45 como máximo.
@@ -80,7 +98,7 @@ Se eligió **Llama 4 Maverick** y, como puede confundir dígitos, cada foto se l
 
 ## Parámetros (widgets)
 
-`origen` (Delta de Bronce, tabla o carpeta `s3://`), `silver_uri`, `catalogo`, `esquema`, `modo`, `modelo`, `lado_a`, `lado_b`, `precio_min`, `precio_max`, `limite_fotos`, `escribir`.
+`origen` (Delta de Bronce, tabla o carpeta `s3://`), `silver_uri`, `catalogo`, `esquema`, `modo`, `modelo`, `lado_a`, `lado_b`, `precio_min`, `precio_max`, `limite_fotos`, `escribir`, `usar_referencia`, `referencia_csv`.
 
 En el Job, `origen = s3://cc3105-cusn-869227452861-us-east-2-an/equipo7/fotos_precios` (Delta de Bronce). Para desarrollo se puede apuntar directo a `s3://cc3105-raw-869227452861-us-east-2-an/img/`.
 

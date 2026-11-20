@@ -13,6 +13,15 @@ def semana_de(fechas: pd.Series) -> pd.Series:
     return dias - pd.to_timedelta((dias.dt.dayofweek - 1) % 7, unit="D")
 
 
+def preferir_observados(silver: pd.DataFrame) -> pd.DataFrame:
+    """Usa referencias mensuales en un combustible/semana solo si no hay lecturas observadas."""
+    if "metodo_validacion" not in silver.columns or silver.empty:
+        return silver
+    es_referencia = silver["metodo_validacion"].fillna("").str.startswith("referencia_")
+    hay_observado = (~es_referencia).groupby([semana_de(silver["fecha"]), silver["combustible"]]).transform("any")
+    return silver.loc[~(es_referencia & hay_observado)].copy()
+
+
 def precio_semanal(silver: pd.DataFrame) -> pd.DataFrame:
     """Promedio, mínimo y máximo por semana y combustible (Plata: fecha, combustible, precio_q_galon)."""
     datos = silver.assign(semana=semana_de(silver["fecha"]))

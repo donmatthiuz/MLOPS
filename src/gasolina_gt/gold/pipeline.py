@@ -11,7 +11,7 @@ from .modeling import ResultadoModelo, contar_triples, entrenar_y_evaluar
 from .params import GoldParams
 from .predictions import combinar_predicciones
 from .schemas import ordenar
-from .weekly import precio_semanal, variacion_semanal, wti_semanal
+from .weekly import preferir_observados, precio_semanal, variacion_semanal, wti_semanal
 
 Tracker = Callable[[dict, dict, object], Optional[str]]
 
@@ -44,16 +44,20 @@ def _parametros(params: GoldParams, r: ResultadoModelo, usa_wti: bool) -> dict:
 
 
 def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params: GoldParams, *,
-                 previas: Optional[pd.DataFrame] = None, generado_en=None, tracker: Optional[Tracker] = None,
+                 silver_modelo: Optional[pd.DataFrame] = None, previas: Optional[pd.DataFrame] = None,
+                 generado_en=None, tracker: Optional[Tracker] = None,
                  log: Callable[[str], None] = print) -> GoldResult:
-    """silver: fecha, combustible, precio_q_galon. wti_crudo (opcional): observation_date, DCOILWTICO."""
+    """silver incluye respaldos para tablas descriptivas; silver_modelo solo lecturas observadas."""
     generado_en = pd.Timestamp.now("UTC").tz_localize(None) if generado_en is None else generado_en
 
-    semanal = precio_semanal(silver)
+    semanal = precio_semanal(preferir_observados(silver))
     variacion = variacion_semanal(semanal, params.umbral_q)
+    silver_modelo = silver if silver_modelo is None else silver_modelo
+    semanal_modelo = precio_semanal(silver_modelo)
+    variacion_modelo = variacion_semanal(semanal_modelo, params.umbral_q)
     usa_wti = bool(params.usar_wti and wti_crudo is not None and len(wti_crudo))
     wti = wti_semanal(wti_crudo) if usa_wti else None
-    features = construir_features(variacion, wti)
+    features = construir_features(variacion_modelo, wti)
 
     triples = contar_triples(features)
     log("Oro: ejemplos válidos (triples t-1, t, t+1) por combustible: "
@@ -62,7 +66,8 @@ def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params
     r = entrenar_y_evaluar(features, params)
     log(f"Oro: {r.motivo}")
 
-    reales = variacion.loc[variacion["direccion"].notna(), ["semana", "combustible", "direccion"]]
+    reales = variacion_modelo.loc[variacion_modelo["direccion"].notna(),
+                                 ["semana", "combustible", "direccion"]]
     predicciones = combinar_predicciones(previas, pd.concat([r.backtest, r.pronostico], ignore_index=True),
                                          reales, generado_en)
 

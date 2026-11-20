@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pipelines"))
 
 from plata_reglas import (  # noqa: E402
+    ajustar_orden_con_referencia,
     anio_de_ruta,
     conciliar,
     lecturas_por_combustible,
@@ -42,6 +43,23 @@ def test_conciliar_prefiere_display_y_luego_consenso() -> None:
     assert conciliar(25.99, 25.99, None) == (25.99, "consenso")
     assert conciliar(21.29, 27.29, None) == (None, "lecturas_inconsistentes")
     assert conciliar(None, None, None) == (None, "sin_lectura")
+
+
+def test_referencia_desempata_lecturas_y_respalda_precio_ilegible() -> None:
+    assert conciliar(21, 27, None, 22) == (21, "referencia_desempate")
+    assert conciliar(None, None, None, 22) == (22, "referencia_mensual")
+    assert conciliar(21, 27, 27, 22) == (27, "display_bomba")
+    assert conciliar(21, 21, None, 27) == (21, "consenso")
+    assert conciliar(16, 29, None, 22) == (22, "referencia_mensual")
+    assert conciliar(21, 23, None, 22) == (22, "referencia_mensual")  # empate: no inventar desempate
+
+
+def test_referencia_resuelve_orden_invertido_con_procedencia() -> None:
+    finales = {"super": (25, "consenso"), "regular": (30, "consenso")}
+    refs = {"super": 32, "regular": 30}
+    assert ajustar_orden_con_referencia(finales, refs) == {
+        "super": (32, "referencia_mensual_orden"), "regular": (30, "consenso")}
+    assert ajustar_orden_con_referencia(finales, {}) is None
 
 
 def test_reglas_de_calidad() -> None:

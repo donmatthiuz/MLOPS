@@ -7,6 +7,8 @@
 # MAGIC 1. **Extracción**: un modelo de visión servido en Databricks lee cada foto **dos veces** (dos resoluciones).
 # MAGIC 2. **Conciliación**: un precio se acepta si ambas lecturas coinciden, o si una coincide con el precio que se deduce
 # MAGIC    del display de la bomba (monto ÷ galones).
+# MAGIC    Si no se puede conciliar, se usa el promedio mensual del MEM para Ciudad Capital como desempate o respaldo,
+# MAGIC    dejando el método registrado en `metodo_validacion`. Se supone que todas las fotos son de Ciudad Capital.
 # MAGIC 3. **Calidad**: fecha EXIF conocida, no futura y coherente con la carpeta del año; combustible del catálogo
 # MAGIC    (súper, regular, diésel); precio en rango; lecturas consistentes; súper ≥ regular.
 # MAGIC    Lo que falla va a `precios_rejected` con su motivo.
@@ -58,10 +60,12 @@ dbutils.widgets.text("precio_min", "15", "Precio mínimo válido (Q/gal)")
 dbutils.widgets.text("precio_max", "60", "Precio máximo válido (Q/gal)")
 dbutils.widgets.text("limite_fotos", "0", "Máximo de fotos nuevas (0 = todas)")
 dbutils.widgets.dropdown("escribir", "si", ["si", "no"], "¿Escribir tablas?")
+dbutils.widgets.dropdown("usar_referencia", "si", ["si", "no"], "¿Usar referencia mensual MEM?")
+dbutils.widgets.text("referencia_csv", "", "CSV mensual MEM (vacío = archivo del Git folder)")
 
 P = {k: dbutils.widgets.get(k) for k in
      ("origen", "silver_uri", "catalogo", "esquema", "modo", "modelo", "lado_a", "lado_b",
-      "precio_min", "precio_max", "limite_fotos", "escribir")}
+     "precio_min", "precio_max", "limite_fotos", "escribir", "usar_referencia", "referencia_csv")}
 if not P["origen"].strip() or not P["silver_uri"].strip():
     raise ValueError("Faltan parámetros origen y silver_uri; configúrelos en el Job o en los widgets")
 P["silver_uri"] = P["silver_uri"].rstrip("/")
@@ -76,17 +80,30 @@ print(P)
 # COMMAND ----------
 
 import os
+from pathlib import Path
 
 # Las reglas viven en pipelines/plata_reglas.py (probadas con pytest).
 try:
     _nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-    for _d in (os.getcwd(), "/Workspace" + os.path.dirname(_nb)):
+    ruta_notebook = Path(_nb if _nb.startswith("/Workspace/") else "/Workspace" + _nb)
+    for _d in (os.getcwd(), str(ruta_notebook.parent)):
         if _d not in sys.path:
             sys.path.insert(0, _d)
-    from plata_reglas import (anio_de_ruta, conciliar, lecturas_por_combustible, motivo_rechazo, normalizar_modalidad,
-                              normalizar_ubicacion, orden_incoherente, parsear_respuesta, precio_desde_display)
+    from plata_reglas import (ajustar_orden_con_referencia, anio_de_ruta, conciliar, lecturas_por_combustible,
+                              motivo_rechazo, normalizar_modalidad, normalizar_ubicacion, orden_incoherente,
+                              parsear_respuesta, precio_desde_display)
+    from plata_referencia import buscar_referencia, cargar_referencias
 except ImportError as exc:
-    raise ImportError("No se encontró plata_reglas.py junto a este notebook (Git folder del repo).") from exc
+    raise ImportError("No se encontraron plata_reglas.py y plata_referencia.py junto a este notebook (Git folder).") from exc
+
+if P["usar_referencia"] == "si":
+    repo = ruta_notebook.parent.parent
+    ruta_referencia = (Path(P["referencia_csv"]) if P["referencia_csv"].strip()
+                       else repo / "docs/plata/precios_mem_capital_mensual.csv")
+    referencias = cargar_referencias(ruta_referencia)
+    print(f"Referencia MEM Ciudad Capital: {len(referencias)} precios de {ruta_referencia}")
+else:
+    referencias = {}
 
 # COMMAND ----------
 
@@ -106,7 +123,7 @@ ESQUEMAS = {
         T.StructField("modalidad", T.StringType(), metadata={"comment": "autoservicio, servicio completo o no_especificada"}),
         T.StructField("ubicacion", T.StringType(), metadata={"comment": "Estación y/o lugar leído en la foto; desconocida si no aparece"}),
         T.StructField("foto_origen", T.StringType(), metadata={"comment": "Ruta de la foto en Bronce"}),
-        T.StructField("metodo_validacion", T.StringType(), metadata={"comment": "consenso (dos lecturas iguales) o display_bomba (coincide con monto/galones)"}),
+        T.StructField("metodo_validacion", T.StringType(), metadata={"comment": "consenso, display_bomba o referencia_... (precio asistido o sustituido por promedio mensual MEM)"}),
         T.StructField("_processed_timestamp", T.TimestampType()),
     ]),
     "precios_rejected": T.StructType([
@@ -150,18 +167,30 @@ def evaluar(foto: str, fecha: date | None, texto_a: str | None, texto_b: str | N
     """
     resp_a, resp_b = parsear_respuesta(texto_a), parsear_respuesta(texto_b)
     base = resp_b or resp_a or {}
-    disp = base.get("display_bomba") or {}
-    p_display = precio_desde_display(disp.get("monto_q"), disp.get("galones"))
+    disp_a = (resp_a or {}).get("display_bomba") or {}
+    disp_b = (resp_b or {}).get("display_bomba") or {}
+    p_display_a = precio_desde_display(disp_a.get("monto_q"), disp_a.get("galones"))
+    p_display_b = precio_desde_display(disp_b.get("monto_q"), disp_b.get("galones"))
+    p_display = (None if p_display_a is not None and p_display_b is not None
+                 and abs(p_display_a - p_display_b) > 0.01
+                 else p_display_b if p_display_b is not None else p_display_a)
     ubicacion = normalizar_ubicacion(base.get("estacion"), base.get("ubicacion"))
     modalidad = normalizar_modalidad(base.get("modalidad"))
+    if modalidad == "no_especificada":
+        modalidad = normalizar_modalidad((resp_a or {}).get("modalidad"))
 
     lect_a, lect_b = lecturas_por_combustible(resp_a), lecturas_por_combustible(resp_b)
     if not lect_a and not lect_b:
         return [], [(foto, None, None, "foto_sin_precios", ahora)], p_display
 
     aceptadas, rechazadas, finales = [], [], {}
+    ref_valores = {}
     for comb in sorted(set(lect_a) | set(lect_b)):
-        precio, metodo = conciliar(lect_a.get(comb), lect_b.get(comb), p_display)
+        ref, supuesto_auto = buscar_referencia(referencias, fecha, modalidad, comb)
+        ref_valores[comb] = ref
+        precio, metodo = conciliar(lect_a.get(comb), lect_b.get(comb), p_display, ref)
+        if supuesto_auto and metodo.startswith("referencia_"):
+            metodo += "_autoservicio_supuesto"
         motivo = (motivo_rechazo(fecha, comb, precio, hoy, pmin, pmax, anio_de_ruta(foto))
                   if precio is not None else metodo)
         if motivo:
@@ -169,9 +198,22 @@ def evaluar(foto: str, fecha: date | None, texto_a: str | None, texto_b: str | N
         else:
             finales[comb] = (precio, metodo)
     if orden_incoherente({c: v[0] for c, v in finales.items()}):
-        for comb in ("super", "regular"):
-            precio, _ = finales.pop(comb)
-            rechazadas.append((foto, comb, precio, "super_menor_que_regular", ahora))
+        ajustadas = ajustar_orden_con_referencia(finales, ref_valores)
+        if ajustadas is None:
+            for comb in ("super", "regular"):
+                precio, _ = finales.pop(comb)
+                rechazadas.append((foto, comb, precio, "super_menor_que_regular", ahora))
+        else:
+            finales = ajustadas
+            if modalidad == "no_especificada":
+                finales = {comb: (precio, metodo + "_autoservicio_supuesto"
+                                  if metodo == "referencia_mensual_orden" else metodo)
+                           for comb, (precio, metodo) in finales.items()}
+    for comb, (precio, _) in list(finales.items()):
+        motivo = motivo_rechazo(fecha, comb, precio, hoy, pmin, pmax, anio_de_ruta(foto))
+        if motivo:
+            finales.pop(comb)
+            rechazadas.append((foto, comb, precio, motivo, ahora))
     for comb, (precio, metodo) in finales.items():
         aceptadas.append((fecha, comb, Decimal(str(precio)), modalidad, ubicacion, foto, metodo, ahora))
     return aceptadas, rechazadas, p_display

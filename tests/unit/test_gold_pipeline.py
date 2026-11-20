@@ -65,6 +65,31 @@ def test_con_pocos_datos_escribe_todo_predice_con_la_linea_base_y_lo_marca(capsy
     assert (res.predicciones["modelo"] == "linea_base").all()
 
 
+def test_referencia_aparece_en_precio_semanal_pero_no_entrena_ni_evalua() -> None:
+    silver = precios_silver({"super": {0: 20, 1: 21, 2: 22, 3: 23, 4: 24}})
+    observado = silver[pd.to_datetime(silver["fecha"]) != martes(2)]
+    res = compute_gold(silver, None, GoldParams(), silver_modelo=observado,
+                       generado_en=T0, log=lambda *_: None)
+    assert len(res.precio_semanal) == 5
+    assert martes(2) not in set(res.features_modelo["semana"])
+    assert res.metricas_modelo.iloc[0].n_ejemplos < 3
+
+
+def test_precio_semanal_prefiere_lectura_observada_al_promedio_mensual() -> None:
+    silver = precios_silver({"regular": {0: 30, 1: 31}})
+    silver["metodo_validacion"] = "consenso"
+    respaldo = pd.DataFrame([{"fecha": martes(1), "combustible": "regular",
+                             "precio_q_galon": 40, "metodo_validacion": "referencia_mensual"},
+                            {"fecha": martes(2), "combustible": "regular",
+                             "precio_q_galon": 40, "metodo_validacion": "referencia_mensual"}])
+    res = compute_gold(pd.concat([silver, respaldo], ignore_index=True), None, GoldParams(),
+                       silver_modelo=silver.drop(columns="metodo_validacion"), generado_en=T0, log=lambda *_: None)
+    por_semana = res.precio_semanal.set_index("semana")
+    assert por_semana.loc[martes(1), "precio_promedio"] == 31
+    assert por_semana.loc[martes(1), "n_lecturas"] == 1
+    assert por_semana.loc[martes(2), "precio_promedio"] == 40
+
+
 def test_imprime_el_conteo_de_triples_por_combustible_al_inicio(capsys):
     compute_gold(serie_alternante(10), None, GoldParams(), generado_en=T0)
     primera_linea = capsys.readouterr().out.splitlines()[0].lower()

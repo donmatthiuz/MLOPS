@@ -1,0 +1,649 @@
+mes,modalidad,combustible,precio_q_galon,ambito
+2020-01,autoservicio,super_aditivada,25.24,ciudad_capital
+2020-01,autoservicio,super,24.75,ciudad_capital
+2020-01,autoservicio,regular,23.74,ciudad_capital
+2020-01,autoservicio,diesel,21.09,ciudad_capital
+2020-01,servicio completo,super_aditivada,26.17,ciudad_capital
+2020-01,servicio completo,super,25.60,ciudad_capital
+2020-01,servicio completo,regular,24.59,ciudad_capital
+2020-01,servicio completo,diesel,21.94,ciudad_capital
+2020-02,autoservicio,super_aditivada,24.18,ciudad_capital
+2020-02,autoservicio,super,23.67,ciudad_capital
+2020-02,autoservicio,regular,22.65,ciudad_capital
+2020-02,autoservicio,diesel,18.74,ciudad_capital
+2020-02,servicio completo,super_aditivada,25.12,ciudad_capital
+2020-02,servicio completo,super,24.51,ciudad_capital
+2020-02,servicio completo,regular,23.48,ciudad_capital
+2020-02,servicio completo,diesel,19.57,ciudad_capital
+2020-03,autoservicio,super_aditivada,23.11,ciudad_capital
+2020-03,autoservicio,super,22.62,ciudad_capital
+2020-03,autoservicio,regular,21.62,ciudad_capital
+2020-03,autoservicio,diesel,17.11,ciudad_capital
+2020-03,servicio completo,super_aditivada,24.15,ciudad_capital
+2020-03,servicio completo,super,23.60,ciudad_capital
+2020-03,servicio completo,regular,22.58,ciudad_capital
+2020-03,servicio completo,diesel,18.08,ciudad_capital
+2020-04,autoservicio,super_aditivada,18.30,ciudad_capital
+2020-04,autoservicio,super,17.89,ciudad_capital
+2020-04,autoservicio,regular,16.87,ciudad_capital
+2020-04,autoservicio,diesel,14.91,ciudad_capital
+2020-04,servicio completo,super_aditivada,19.44,ciudad_capital
+2020-04,servicio completo,super,18.97,ciudad_capital
+2020-04,servicio completo,regular,17.96,ciudad_capital
+2020-04,servicio completo,diesel,15.95,ciudad_capital
+2020-05,autoservicio,super_aditivada,18.22,ciudad_capital
+2020-05,autoservicio,super,17.67,ciudad_capital
+2020-05,autoservicio,regular,16.66,ciudad_capital
+2020-05,autoservicio,diesel,14.09,ciudad_capital
+2020-05,servicio completo,super_aditivada,19.36,ciudad_capital
+2020-05,servicio completo,super,18.74,ciudad_capital
+2020-05,servicio completo,regular,17.71,ciudad_capital
+2020-05,servicio completo,diesel,15.06,ciudad_capital
+2020-06,autoservicio,super_aditivada,20.48,ciudad_capital
+2020-06,autoservicio,super,20.04,ciudad_capital
+2020-06,autoservicio,regular,19.18,ciudad_capital
+2020-06,autoservicio,diesel,15.34,ciudad_capital
+2020-06,servicio completo,super_aditivada,21.57,ciudad_capital
+2020-06,servicio completo,super,21.08,ciudad_capital
+2020-06,servicio completo,regular,20.20,ciudad_capital
+2020-06,servicio completo,diesel,16.39,ciudad_capital
+2020-07,autoservicio,super_aditivada,21.93,ciudad_capital
+2020-07,autoservicio,super,21.50,ciudad_capital
+2020-07,autoservicio,regular,20.70,ciudad_capital
+2020-07,autoservicio,diesel,16.34,ciudad_capital
+2020-07,servicio completo,super_aditivada,23.17,ciudad_capital
+2020-07,servicio completo,super,22.55,ciudad_capital
+2020-07,servicio completo,regular,21.75,ciudad_capital
+2020-07,servicio completo,diesel,17.38,ciudad_capital
+2020-08,autoservicio,super_aditivada,21.66,ciudad_capital
+2020-08,autoservicio,super,21.21,ciudad_capital
+2020-08,autoservicio,regular,20.40,ciudad_capital
+2020-08,autoservicio,diesel,16.62,ciudad_capital
+2020-08,servicio completo,super_aditivada,22.76,ciudad_capital
+2020-08,servicio completo,super,22.33,ciudad_capital
+2020-08,servicio completo,regular,21.40,ciudad_capital
+2020-08,servicio completo,diesel,17.61,ciudad_capital
+2020-09,autoservicio,super_aditivada,21.54,ciudad_capital
+2020-09,autoservicio,super,21.08,ciudad_capital
+2020-09,autoservicio,regular,20.28,ciudad_capital
+2020-09,autoservicio,diesel,15.45,ciudad_capital
+2020-09,servicio completo,super_aditivada,22.64,ciudad_capital
+2020-09,servicio completo,super,22.14,ciudad_capital
+2020-09,servicio completo,regular,21.32,ciudad_capital
+2020-09,servicio completo,diesel,16.51,ciudad_capital
+2020-10,autoservicio,super_aditivada,21.58,ciudad_capital
+2020-10,autoservicio,super,21.15,ciudad_capital
+2020-10,autoservicio,regular,20.35,ciudad_capital
+2020-10,autoservicio,diesel,15.01,ciudad_capital
+2020-10,servicio completo,super_aditivada,22.76,ciudad_capital
+2020-10,servicio completo,super,22.30,ciudad_capital
+2020-10,servicio completo,regular,21.50,ciudad_capital
+2020-10,servicio completo,diesel,16.15,ciudad_capital
+2020-11,autoservicio,super_aditivada,20.60,ciudad_capital
+2020-11,autoservicio,super,20.11,ciudad_capital
+2020-11,autoservicio,regular,19.31,ciudad_capital
+2020-11,autoservicio,diesel,15.07,ciudad_capital
+2020-11,servicio completo,super_aditivada,21.76,ciudad_capital
+2020-11,servicio completo,super,21.21,ciudad_capital
+2020-11,servicio completo,regular,20.40,ciudad_capital
+2020-11,servicio completo,diesel,16.15,ciudad_capital
+2020-12,autoservicio,super_aditivada,22.10,ciudad_capital
+2020-12,autoservicio,super,21.61,ciudad_capital
+2020-12,autoservicio,regular,20.81,ciudad_capital
+2020-12,autoservicio,diesel,17.23,ciudad_capital
+2020-12,servicio completo,super_aditivada,23.41,ciudad_capital
+2020-12,servicio completo,super,22.76,ciudad_capital
+2020-12,servicio completo,regular,21.94,ciudad_capital
+2020-12,servicio completo,diesel,18.37,ciudad_capital
+2021-01,autoservicio,super_aditivada,23.26,ciudad_capital
+2021-01,autoservicio,super,22.74,ciudad_capital
+2021-01,autoservicio,regular,21.94,ciudad_capital
+2021-01,autoservicio,diesel,18.02,ciudad_capital
+2021-01,servicio completo,super_aditivada,24.34,ciudad_capital
+2021-01,servicio completo,super,23.82,ciudad_capital
+2021-01,servicio completo,regular,23.01,ciudad_capital
+2021-01,servicio completo,diesel,19.10,ciudad_capital
+2021-02,autoservicio,super_aditivada,24.94,ciudad_capital
+2021-02,autoservicio,super,24.45,ciudad_capital
+2021-02,autoservicio,regular,23.65,ciudad_capital
+2021-02,autoservicio,diesel,19.46,ciudad_capital
+2021-02,servicio completo,super_aditivada,26.07,ciudad_capital
+2021-02,servicio completo,super,25.53,ciudad_capital
+2021-02,servicio completo,regular,24.74,ciudad_capital
+2021-02,servicio completo,diesel,20.53,ciudad_capital
+2021-03,autoservicio,super_aditivada,27.08,ciudad_capital
+2021-03,autoservicio,super,26.62,ciudad_capital
+2021-03,autoservicio,regular,25.82,ciudad_capital
+2021-03,autoservicio,diesel,21.21,ciudad_capital
+2021-03,servicio completo,super_aditivada,28.24,ciudad_capital
+2021-03,servicio completo,super,27.70,ciudad_capital
+2021-03,servicio completo,regular,26.89,ciudad_capital
+2021-03,servicio completo,diesel,22.27,ciudad_capital
+2021-04,autoservicio,super_aditivada,27.36,ciudad_capital
+2021-04,autoservicio,super,26.92,ciudad_capital
+2021-04,autoservicio,regular,26.13,ciudad_capital
+2021-04,autoservicio,diesel,20.65,ciudad_capital
+2021-04,servicio completo,super_aditivada,28.54,ciudad_capital
+2021-04,servicio completo,super,28.03,ciudad_capital
+2021-04,servicio completo,regular,27.22,ciudad_capital
+2021-04,servicio completo,diesel,21.77,ciudad_capital
+2021-05,autoservicio,super_aditivada,28.28,ciudad_capital
+2021-05,autoservicio,super,27.80,ciudad_capital
+2021-05,autoservicio,regular,26.99,ciudad_capital
+2021-05,autoservicio,diesel,21.75,ciudad_capital
+2021-05,servicio completo,super_aditivada,29.41,ciudad_capital
+2021-05,servicio completo,super,28.80,ciudad_capital
+2021-05,servicio completo,regular,27.98,ciudad_capital
+2021-05,servicio completo,diesel,22.71,ciudad_capital
+2021-06,autoservicio,super_aditivada,28.21,ciudad_capital
+2021-06,autoservicio,super,27.87,ciudad_capital
+2021-06,autoservicio,regular,27.07,ciudad_capital
+2021-06,autoservicio,diesel,22.26,ciudad_capital
+2021-06,servicio completo,super_aditivada,29.31,ciudad_capital
+2021-06,servicio completo,super,28.85,ciudad_capital
+2021-06,servicio completo,regular,27.90,ciudad_capital
+2021-06,servicio completo,diesel,23.23,ciudad_capital
+2021-07,autoservicio,super_aditivada,28.92,ciudad_capital
+2021-07,autoservicio,super,28.46,ciudad_capital
+2021-07,autoservicio,regular,27.66,ciudad_capital
+2021-07,autoservicio,diesel,22.61,ciudad_capital
+2021-07,servicio completo,super_aditivada,30.04,ciudad_capital
+2021-07,servicio completo,super,29.49,ciudad_capital
+2021-07,servicio completo,regular,28.69,ciudad_capital
+2021-07,servicio completo,diesel,23.64,ciudad_capital
+2021-08,autoservicio,super_aditivada,29.42,ciudad_capital
+2021-08,autoservicio,super,28.91,ciudad_capital
+2021-08,autoservicio,regular,28.11,ciudad_capital
+2021-08,autoservicio,diesel,22.91,ciudad_capital
+2021-08,servicio completo,super_aditivada,30.49,ciudad_capital
+2021-08,servicio completo,super,29.91,ciudad_capital
+2021-08,servicio completo,regular,29.09,ciudad_capital
+2021-08,servicio completo,diesel,23.89,ciudad_capital
+2021-09,autoservicio,super_aditivada,29.63,ciudad_capital
+2021-09,autoservicio,super,29.19,ciudad_capital
+2021-09,autoservicio,regular,28.49,ciudad_capital
+2021-09,autoservicio,diesel,23.56,ciudad_capital
+2021-09,servicio completo,super_aditivada,30.83,ciudad_capital
+2021-09,servicio completo,super,30.23,ciudad_capital
+2021-09,servicio completo,regular,29.51,ciudad_capital
+2021-09,servicio completo,diesel,24.59,ciudad_capital
+2021-10,autoservicio,super_aditivada,30.49,ciudad_capital
+2021-10,autoservicio,super,29.99,ciudad_capital
+2021-10,autoservicio,regular,29.29,ciudad_capital
+2021-10,autoservicio,diesel,25.46,ciudad_capital
+2021-10,servicio completo,super_aditivada,32.60,ciudad_capital
+2021-10,servicio completo,super,31.00,ciudad_capital
+2021-10,servicio completo,regular,30.28,ciudad_capital
+2021-10,servicio completo,diesel,26.47,ciudad_capital
+2021-11,autoservicio,super_aditivada,30.95,ciudad_capital
+2021-11,autoservicio,super,30.48,ciudad_capital
+2021-11,autoservicio,regular,29.78,ciudad_capital
+2021-11,autoservicio,diesel,26.02,ciudad_capital
+2021-11,servicio completo,super_aditivada,32.11,ciudad_capital
+2021-11,servicio completo,super,31.55,ciudad_capital
+2021-11,servicio completo,regular,30.82,ciudad_capital
+2021-11,servicio completo,diesel,27.07,ciudad_capital
+2021-12,autoservicio,super_aditivada,29.26,ciudad_capital
+2021-12,autoservicio,super,28.77,ciudad_capital
+2021-12,autoservicio,regular,28.03,ciudad_capital
+2021-12,autoservicio,diesel,24.36,ciudad_capital
+2021-12,servicio completo,super_aditivada,30.38,ciudad_capital
+2021-12,servicio completo,super,29.82,ciudad_capital
+2021-12,servicio completo,regular,29.06,ciudad_capital
+2021-12,servicio completo,diesel,25.39,ciudad_capital
+2022-01,autoservicio,super_aditivada,30.99,ciudad_capital
+2022-01,autoservicio,super,30.38,ciudad_capital
+2022-01,autoservicio,regular,29.58,ciudad_capital
+2022-01,autoservicio,diesel,26.40,ciudad_capital
+2022-01,servicio completo,super_aditivada,32.05,ciudad_capital
+2022-01,servicio completo,super,31.41,ciudad_capital
+2022-01,servicio completo,regular,30.60,ciudad_capital
+2022-01,servicio completo,diesel,27.41,ciudad_capital
+2022-02,autoservicio,super_aditivada,33.52,ciudad_capital
+2022-02,autoservicio,super,32.95,ciudad_capital
+2022-02,autoservicio,regular,32.20,ciudad_capital
+2022-02,autoservicio,diesel,29.29,ciudad_capital
+2022-02,servicio completo,super_aditivada,34.55,ciudad_capital
+2022-02,servicio completo,super,33.84,ciudad_capital
+2022-02,servicio completo,regular,33.08,ciudad_capital
+2022-02,servicio completo,diesel,30.20,ciudad_capital
+2022-03,autoservicio,super_aditivada,38.71,ciudad_capital
+2022-03,autoservicio,super,38.25,ciudad_capital
+2022-03,autoservicio,regular,37.64,ciudad_capital
+2022-03,autoservicio,diesel,36.21,ciudad_capital
+2022-03,servicio completo,super_aditivada,39.83,ciudad_capital
+2022-03,servicio completo,super,39.12,ciudad_capital
+2022-03,servicio completo,regular,38.51,ciudad_capital
+2022-03,servicio completo,diesel,37.05,ciudad_capital
+2022-04,autoservicio,super_aditivada,38.32,ciudad_capital
+2022-04,autoservicio,super,37.86,ciudad_capital
+2022-04,autoservicio,regular,34.84,ciudad_capital
+2022-04,autoservicio,diesel,32.95,ciudad_capital
+2022-04,servicio completo,super_aditivada,39.37,ciudad_capital
+2022-04,servicio completo,super,38.83,ciudad_capital
+2022-04,servicio completo,regular,35.80,ciudad_capital
+2022-04,servicio completo,diesel,33.90,ciudad_capital
+2022-05,autoservicio,super_aditivada,41.69,ciudad_capital
+2022-05,autoservicio,super,41.25,ciudad_capital
+2022-05,autoservicio,regular,38.53,ciudad_capital
+2022-05,autoservicio,diesel,34.83,ciudad_capital
+2022-05,servicio completo,super_aditivada,42.68,ciudad_capital
+2022-05,servicio completo,super,42.14,ciudad_capital
+2022-05,servicio completo,regular,39.37,ciudad_capital
+2022-05,servicio completo,diesel,35.79,ciudad_capital
+2022-06,autoservicio,super_aditivada,40.74,ciudad_capital
+2022-06,autoservicio,super,40.32,ciudad_capital
+2022-06,autoservicio,regular,39.32,ciudad_capital
+2022-06,autoservicio,diesel,35.40,ciudad_capital
+2022-06,servicio completo,super_aditivada,41.73,ciudad_capital
+2022-06,servicio completo,super,41.19,ciudad_capital
+2022-06,servicio completo,regular,40.16,ciudad_capital
+2022-06,servicio completo,diesel,36.17,ciudad_capital
+2022-07,autoservicio,super_aditivada,35.69,ciudad_capital
+2022-07,autoservicio,super,35.52,ciudad_capital
+2022-07,autoservicio,regular,34.57,ciudad_capital
+2022-07,autoservicio,diesel,31.52,ciudad_capital
+2022-07,servicio completo,super_aditivada,36.68,ciudad_capital
+2022-07,servicio completo,super,36.41,ciudad_capital
+2022-07,servicio completo,regular,35.42,ciudad_capital
+2022-07,servicio completo,diesel,32.34,ciudad_capital
+2022-08,autoservicio,super_aditivada,35.28,ciudad_capital
+2022-08,autoservicio,super,35.28,ciudad_capital
+2022-08,autoservicio,regular,34.19,ciudad_capital
+2022-08,autoservicio,diesel,33.89,ciudad_capital
+2022-08,servicio completo,super_aditivada,36.28,ciudad_capital
+2022-08,servicio completo,super,36.06,ciudad_capital
+2022-08,servicio completo,regular,35.11,ciudad_capital
+2022-08,servicio completo,diesel,34.84,ciudad_capital
+2022-09,autoservicio,super_aditivada,34.69,ciudad_capital
+2022-09,autoservicio,super,34.24,ciudad_capital
+2022-09,autoservicio,regular,33.33,ciudad_capital
+2022-09,autoservicio,diesel,30.70,ciudad_capital
+2022-09,servicio completo,super_aditivada,35.77,ciudad_capital
+2022-09,servicio completo,super,35.21,ciudad_capital
+2022-09,servicio completo,regular,34.28,ciudad_capital
+2022-09,servicio completo,diesel,31.64,ciudad_capital
+2022-10,autoservicio,super_aditivada,36.92,ciudad_capital
+2022-10,autoservicio,super,36.35,ciudad_capital
+2022-10,autoservicio,regular,35.44,ciudad_capital
+2022-10,autoservicio,diesel,38.33,ciudad_capital
+2022-10,servicio completo,super_aditivada,38.05,ciudad_capital
+2022-10,servicio completo,super,37.33,ciudad_capital
+2022-10,servicio completo,regular,36.40,ciudad_capital
+2022-10,servicio completo,diesel,39.18,ciudad_capital
+2022-11,autoservicio,super_aditivada,36.80,ciudad_capital
+2022-11,autoservicio,super,34.90,ciudad_capital
+2022-11,autoservicio,regular,34.90,ciudad_capital
+2022-11,autoservicio,diesel,38.89,ciudad_capital
+2022-11,servicio completo,super_aditivada,37.85,ciudad_capital
+2022-11,servicio completo,super,37.39,ciudad_capital
+2022-11,servicio completo,regular,35.97,ciudad_capital
+2022-11,servicio completo,diesel,39.93,ciudad_capital
+2022-12,autoservicio,super_aditivada,34.10,ciudad_capital
+2022-12,autoservicio,super,33.63,ciudad_capital
+2022-12,autoservicio,regular,32.06,ciudad_capital
+2022-12,autoservicio,diesel,34.52,ciudad_capital
+2022-12,servicio completo,super_aditivada,35.28,ciudad_capital
+2022-12,servicio completo,super,34.66,ciudad_capital
+2022-12,servicio completo,regular,33.10,ciudad_capital
+2022-12,servicio completo,diesel,35.56,ciudad_capital
+2023-01,autoservicio,super_aditivada,34.62,ciudad_capital
+2023-01,autoservicio,super,34.10,ciudad_capital
+2023-01,autoservicio,regular,32.70,ciudad_capital
+2023-01,autoservicio,diesel,35.79,ciudad_capital
+2023-01,servicio completo,super_aditivada,35.76,ciudad_capital
+2023-01,servicio completo,super,35.12,ciudad_capital
+2023-01,servicio completo,regular,33.70,ciudad_capital
+2023-01,servicio completo,diesel,36.78,ciudad_capital
+2023-02,autoservicio,super_aditivada,34.46,ciudad_capital
+2023-02,autoservicio,super,34.06,ciudad_capital
+2023-02,autoservicio,regular,32.58,ciudad_capital
+2023-02,autoservicio,diesel,33.02,ciudad_capital
+2023-02,servicio completo,super_aditivada,35.54,ciudad_capital
+2023-02,servicio completo,super,35.03,ciudad_capital
+2023-02,servicio completo,regular,33.53,ciudad_capital
+2023-02,servicio completo,diesel,34.00,ciudad_capital
+2023-03,autoservicio,super_aditivada,33.88,ciudad_capital
+2023-03,autoservicio,super,33.40,ciudad_capital
+2023-03,autoservicio,regular,31.83,ciudad_capital
+2023-03,autoservicio,diesel,30.67,ciudad_capital
+2023-03,servicio completo,super_aditivada,34.95,ciudad_capital
+2023-03,servicio completo,super,34.40,ciudad_capital
+2023-03,servicio completo,regular,32.81,ciudad_capital
+2023-03,servicio completo,diesel,31.66,ciudad_capital
+2023-04,autoservicio,super_aditivada,35.83,ciudad_capital
+2023-04,autoservicio,super,35.34,ciudad_capital
+2023-04,autoservicio,regular,33.73,ciudad_capital
+2023-04,autoservicio,diesel,29.78,ciudad_capital
+2023-04,servicio completo,super_aditivada,36.87,ciudad_capital
+2023-04,servicio completo,super,36.33,ciudad_capital
+2023-04,servicio completo,regular,34.71,ciudad_capital
+2023-04,servicio completo,diesel,30.77,ciudad_capital
+2023-05,autoservicio,super_aditivada,33.91,ciudad_capital
+2023-05,autoservicio,super,33.91,ciudad_capital
+2023-05,autoservicio,regular,32.44,ciudad_capital
+2023-05,autoservicio,diesel,27.43,ciudad_capital
+2023-05,servicio completo,super_aditivada,35.43,ciudad_capital
+2023-05,servicio completo,super,34.90,ciudad_capital
+2023-05,servicio completo,regular,33.43,ciudad_capital
+2023-05,servicio completo,diesel,28.44,ciudad_capital
+2023-06,autoservicio,super_aditivada,33.85,ciudad_capital
+2023-06,autoservicio,super,33.41,ciudad_capital
+2023-06,autoservicio,regular,32.05,ciudad_capital
+2023-06,autoservicio,diesel,26.53,ciudad_capital
+2023-06,servicio completo,super_aditivada,34.93,ciudad_capital
+2023-06,servicio completo,super,34.41,ciudad_capital
+2023-06,servicio completo,regular,33.03,ciudad_capital
+2023-06,servicio completo,diesel,27.53,ciudad_capital
+2023-07,autoservicio,super_aditivada,34.80,ciudad_capital
+2023-07,autoservicio,super,34.37,ciudad_capital
+2023-07,autoservicio,regular,32.87,ciudad_capital
+2023-07,autoservicio,diesel,27.91,ciudad_capital
+2023-07,servicio completo,super_aditivada,35.86,ciudad_capital
+2023-07,servicio completo,super,35.35,ciudad_capital
+2023-07,servicio completo,regular,33.85,ciudad_capital
+2023-07,servicio completo,diesel,28.90,ciudad_capital
+2023-08,autoservicio,super_aditivada,37.81,ciudad_capital
+2023-08,autoservicio,super,37.34,ciudad_capital
+2023-08,autoservicio,regular,35.84,ciudad_capital
+2023-08,autoservicio,diesel,31.85,ciudad_capital
+2023-08,servicio completo,super_aditivada,38.91,ciudad_capital
+2023-08,servicio completo,super,38.36,ciudad_capital
+2023-08,servicio completo,regular,36.84,ciudad_capital
+2023-08,servicio completo,diesel,32.86,ciudad_capital
+2023-09,autoservicio,super_aditivada,37.59,ciudad_capital
+2023-09,autoservicio,super,37.10,ciudad_capital
+2023-09,autoservicio,regular,35.60,ciudad_capital
+2023-09,autoservicio,diesel,33.46,ciudad_capital
+2023-09,servicio completo,super_aditivada,38.67,ciudad_capital
+2023-09,servicio completo,super,38.12,ciudad_capital
+2023-09,servicio completo,regular,36.60,ciudad_capital
+2023-09,servicio completo,diesel,34.46,ciudad_capital
+2023-10,autoservicio,super_aditivada,36.00,ciudad_capital
+2023-10,autoservicio,super,35.58,ciudad_capital
+2023-10,autoservicio,regular,34.07,ciudad_capital
+2023-10,autoservicio,diesel,33.72,ciudad_capital
+2023-10,servicio completo,super_aditivada,37.10,ciudad_capital
+2023-10,servicio completo,super,36.61,ciudad_capital
+2023-10,servicio completo,regular,35.10,ciudad_capital
+2023-10,servicio completo,diesel,34.73,ciudad_capital
+2023-11,autoservicio,super_aditivada,31.43,ciudad_capital
+2023-11,autoservicio,super,31.03,ciudad_capital
+2023-11,autoservicio,regular,29.54,ciudad_capital
+2023-11,autoservicio,diesel,31.12,ciudad_capital
+2023-11,servicio completo,super_aditivada,32.41,ciudad_capital
+2023-11,servicio completo,super,32.07,ciudad_capital
+2023-11,servicio completo,regular,30.56,ciudad_capital
+2023-11,servicio completo,diesel,32.13,ciudad_capital
+2023-12,autoservicio,super_aditivada,29.98,ciudad_capital
+2023-12,autoservicio,super,29.55,ciudad_capital
+2023-12,autoservicio,regular,28.06,ciudad_capital
+2023-12,autoservicio,diesel,29.29,ciudad_capital
+2023-12,servicio completo,super_aditivada,31.09,ciudad_capital
+2023-12,servicio completo,super,30.57,ciudad_capital
+2023-12,servicio completo,regular,29.05,ciudad_capital
+2023-12,servicio completo,diesel,30.31,ciudad_capital
+2024-01,autoservicio,super_aditivada,31.12,ciudad_capital
+2024-01,autoservicio,super,30.62,ciudad_capital
+2024-01,autoservicio,regular,29.12,ciudad_capital
+2024-01,autoservicio,diesel,29.16,ciudad_capital
+2024-01,servicio completo,super_aditivada,32.17,ciudad_capital
+2024-01,servicio completo,super,31.59,ciudad_capital
+2024-01,servicio completo,regular,30.08,ciudad_capital
+2024-01,servicio completo,diesel,30.12,ciudad_capital
+2024-02,autoservicio,super_aditivada,32.35,ciudad_capital
+2024-02,autoservicio,super,31.84,ciudad_capital
+2024-02,autoservicio,regular,30.34,ciudad_capital
+2024-02,autoservicio,diesel,30.72,ciudad_capital
+2024-02,servicio completo,super_aditivada,33.37,ciudad_capital
+2024-02,servicio completo,super,32.79,ciudad_capital
+2024-02,servicio completo,regular,31.29,ciudad_capital
+2024-02,servicio completo,diesel,31.68,ciudad_capital
+2024-03,autoservicio,super_aditivada,34.47,ciudad_capital
+2024-03,autoservicio,super,33.93,ciudad_capital
+2024-03,autoservicio,regular,32.43,ciudad_capital
+2024-03,autoservicio,diesel,29.97,ciudad_capital
+2024-03,servicio completo,super_aditivada,35.53,ciudad_capital
+2024-03,servicio completo,super,34.92,ciudad_capital
+2024-03,servicio completo,regular,33.41,ciudad_capital
+2024-03,servicio completo,diesel,30.97,ciudad_capital
+2024-04,autoservicio,super_aditivada,35.68,ciudad_capital
+2024-04,autoservicio,super,35.20,ciudad_capital
+2024-04,autoservicio,regular,33.71,ciudad_capital
+2024-04,autoservicio,diesel,29.78,ciudad_capital
+2024-04,servicio completo,super_aditivada,36.76,ciudad_capital
+2024-04,servicio completo,super,36.21,ciudad_capital
+2024-04,servicio completo,regular,34.70,ciudad_capital
+2024-04,servicio completo,diesel,30.79,ciudad_capital
+2024-05,autoservicio,super_aditivada,33.83,ciudad_capital
+2024-05,autoservicio,super,33.42,ciudad_capital
+2024-05,autoservicio,regular,31.92,ciudad_capital
+2024-05,autoservicio,diesel,28.17,ciudad_capital
+2024-05,servicio completo,super_aditivada,34.92,ciudad_capital
+2024-05,servicio completo,super,34.44,ciudad_capital
+2024-05,servicio completo,regular,32.93,ciudad_capital
+2024-05,servicio completo,diesel,29.20,ciudad_capital
+2024-06,autoservicio,super_aditivada,32.90,ciudad_capital
+2024-06,autoservicio,super,32.42,ciudad_capital
+2024-06,autoservicio,regular,30.92,ciudad_capital
+2024-06,autoservicio,diesel,27.43,ciudad_capital
+2024-06,servicio completo,super_aditivada,33.97,ciudad_capital
+2024-06,servicio completo,super,33.43,ciudad_capital
+2024-06,servicio completo,regular,31.92,ciudad_capital
+2024-06,servicio completo,diesel,28.42,ciudad_capital
+2024-07,autoservicio,super_aditivada,33.30,ciudad_capital
+2024-07,autoservicio,super,32.80,ciudad_capital
+2024-07,autoservicio,regular,31.30,ciudad_capital
+2024-07,autoservicio,diesel,28.25,ciudad_capital
+2024-07,servicio completo,super_aditivada,34.41,ciudad_capital
+2024-07,servicio completo,super,33.79,ciudad_capital
+2024-07,servicio completo,regular,32.27,ciudad_capital
+2024-07,servicio completo,diesel,29.24,ciudad_capital
+2024-08,autoservicio,super_aditivada,33.17,ciudad_capital
+2024-08,autoservicio,super,32.70,ciudad_capital
+2024-08,autoservicio,regular,31.20,ciudad_capital
+2024-08,autoservicio,diesel,27.42,ciudad_capital
+2024-08,servicio completo,super_aditivada,34.25,ciudad_capital
+2024-08,servicio completo,super,33.65,ciudad_capital
+2024-08,servicio completo,regular,32.11,ciudad_capital
+2024-08,servicio completo,diesel,28.35,ciudad_capital
+2024-09,autoservicio,super_aditivada,30.82,ciudad_capital
+2024-09,autoservicio,super,30.38,ciudad_capital
+2024-09,autoservicio,regular,28.88,ciudad_capital
+2024-09,autoservicio,diesel,26.22,ciudad_capital
+2024-09,servicio completo,super_aditivada,31.89,ciudad_capital
+2024-09,servicio completo,super,31.37,ciudad_capital
+2024-09,servicio completo,regular,29.85,ciudad_capital
+2024-09,servicio completo,diesel,27.18,ciudad_capital
+2024-10,autoservicio,super_aditivada,30.28,ciudad_capital
+2024-10,autoservicio,super,29.93,ciudad_capital
+2024-10,autoservicio,regular,28.44,ciudad_capital
+2024-10,autoservicio,diesel,26.22,ciudad_capital
+2024-10,servicio completo,super_aditivada,31.36,ciudad_capital
+2024-10,servicio completo,super,30.93,ciudad_capital
+2024-10,servicio completo,regular,29.40,ciudad_capital
+2024-10,servicio completo,diesel,27.20,ciudad_capital
+2024-11,autoservicio,super_aditivada,29.40,ciudad_capital
+2024-11,autoservicio,super,28.92,ciudad_capital
+2024-11,autoservicio,regular,27.42,ciudad_capital
+2024-11,autoservicio,diesel,25.61,ciudad_capital
+2024-11,servicio completo,super_aditivada,30.49,ciudad_capital
+2024-11,servicio completo,super,29.88,ciudad_capital
+2024-11,servicio completo,regular,28.36,ciudad_capital
+2024-11,servicio completo,diesel,26.56,ciudad_capital
+2024-12,autoservicio,super_aditivada,29.40,ciudad_capital
+2024-12,autoservicio,super,28.95,ciudad_capital
+2024-12,autoservicio,regular,27.45,ciudad_capital
+2024-12,autoservicio,diesel,25.47,ciudad_capital
+2024-12,servicio completo,super_aditivada,30.26,ciudad_capital
+2024-12,servicio completo,super,29.70,ciudad_capital
+2024-12,servicio completo,regular,28.18,ciudad_capital
+2024-12,servicio completo,diesel,26.28,ciudad_capital
+2025-01,autoservicio,super_aditivada,30.74,ciudad_capital
+2025-01,autoservicio,super,30.24,ciudad_capital
+2025-01,autoservicio,regular,28.73,ciudad_capital
+2025-01,autoservicio,diesel,27.10,ciudad_capital
+2025-01,servicio completo,super_aditivada,31.84,ciudad_capital
+2025-01,servicio completo,super,31.24,ciudad_capital
+2025-01,servicio completo,regular,29.74,ciudad_capital
+2025-01,servicio completo,diesel,28.08,ciudad_capital
+2025-02,autoservicio,super_aditivada,31.07,ciudad_capital
+2025-02,autoservicio,super,30.57,ciudad_capital
+2025-02,autoservicio,regular,29.07,ciudad_capital
+2025-02,autoservicio,diesel,27.51,ciudad_capital
+2025-02,servicio completo,super_aditivada,32.17,ciudad_capital
+2025-02,servicio completo,super,31.68,ciudad_capital
+2025-02,servicio completo,regular,30.16,ciudad_capital
+2025-02,servicio completo,diesel,28.61,ciudad_capital
+2025-03,autoservicio,super_aditivada,30.75,ciudad_capital
+2025-03,autoservicio,super,30.24,ciudad_capital
+2025-03,autoservicio,regular,28.75,ciudad_capital
+2025-03,autoservicio,diesel,26.41,ciudad_capital
+2025-03,servicio completo,super_aditivada,31.85,ciudad_capital
+2025-03,servicio completo,super,31.31,ciudad_capital
+2025-03,servicio completo,regular,29.80,ciudad_capital
+2025-03,servicio completo,diesel,27.47,ciudad_capital
+2025-04,autoservicio,super_aditivada,30.89,ciudad_capital
+2025-04,autoservicio,super,30.51,ciudad_capital
+2025-04,autoservicio,regular,29.00,ciudad_capital
+2025-04,autoservicio,diesel,25.64,ciudad_capital
+2025-04,servicio completo,super_aditivada,32.12,ciudad_capital
+2025-04,servicio completo,super,31.57,ciudad_capital
+2025-04,servicio completo,regular,30.07,ciudad_capital
+2025-04,servicio completo,diesel,25.64,ciudad_capital
+2025-05,autoservicio,super_aditivada,30.53,ciudad_capital
+2025-05,autoservicio,super,29.96,ciudad_capital
+2025-05,autoservicio,regular,28.46,ciudad_capital
+2025-05,autoservicio,diesel,25.09,ciudad_capital
+2025-05,servicio completo,super_aditivada,31.65,ciudad_capital
+2025-05,servicio completo,super,31.03,ciudad_capital
+2025-05,servicio completo,regular,29.52,ciudad_capital
+2025-05,servicio completo,diesel,26.17,ciudad_capital
+2025-06,autoservicio,super_aditivada,30.52,ciudad_capital
+2025-06,autoservicio,super,30.27,ciudad_capital
+2025-06,autoservicio,regular,28.75,ciudad_capital
+2025-06,autoservicio,diesel,25.52,ciudad_capital
+2025-06,servicio completo,super_aditivada,31.73,ciudad_capital
+2025-06,servicio completo,super,31.28,ciudad_capital
+2025-06,servicio completo,regular,29.78,ciudad_capital
+2025-06,servicio completo,diesel,26.50,ciudad_capital
+2025-07,autoservicio,super_aditivada,31.10,ciudad_capital
+2025-07,autoservicio,super,31.65,ciudad_capital
+2025-07,autoservicio,regular,30.13,ciudad_capital
+2025-07,autoservicio,diesel,28.21,ciudad_capital
+2025-07,servicio completo,super_aditivada,32.25,ciudad_capital
+2025-07,servicio completo,super,31.65,ciudad_capital
+2025-07,servicio completo,regular,30.13,ciudad_capital
+2025-07,servicio completo,diesel,28.21,ciudad_capital
+2025-08,autoservicio,super_aditivada,30.75,ciudad_capital
+2025-08,autoservicio,super,30.27,ciudad_capital
+2025-08,autoservicio,regular,28.77,ciudad_capital
+2025-08,autoservicio,diesel,26.74,ciudad_capital
+2025-08,servicio completo,super_aditivada,31.90,ciudad_capital
+2025-08,servicio completo,super,31.29,ciudad_capital
+2025-08,servicio completo,regular,29.80,ciudad_capital
+2025-08,servicio completo,diesel,27.79,ciudad_capital
+2025-09,autoservicio,super_aditivada,30.39,ciudad_capital
+2025-09,autoservicio,super,29.99,ciudad_capital
+2025-09,autoservicio,regular,28.50,ciudad_capital
+2025-09,autoservicio,diesel,26.16,ciudad_capital
+2025-09,servicio completo,super_aditivada,31.52,ciudad_capital
+2025-09,servicio completo,super,31.05,ciudad_capital
+2025-09,servicio completo,regular,29.54,ciudad_capital
+2025-09,servicio completo,diesel,27.21,ciudad_capital
+2025-10,autoservicio,super_aditivada,29.58,ciudad_capital
+2025-10,autoservicio,super,29.23,ciudad_capital
+2025-10,autoservicio,regular,27.73,ciudad_capital
+2025-10,autoservicio,diesel,25.90,ciudad_capital
+2025-10,servicio completo,super_aditivada,30.77,ciudad_capital
+2025-10,servicio completo,super,30.30,ciudad_capital
+2025-10,servicio completo,regular,28.79,ciudad_capital
+2025-10,servicio completo,diesel,26.95,ciudad_capital
+2025-11,autoservicio,super_aditivada,29.40,ciudad_capital
+2025-11,autoservicio,super,28.88,ciudad_capital
+2025-11,autoservicio,regular,27.75,ciudad_capital
+2025-11,autoservicio,diesel,27.02,ciudad_capital
+2025-11,servicio completo,super_aditivada,30.51,ciudad_capital
+2025-11,servicio completo,super,29.95,ciudad_capital
+2025-11,servicio completo,regular,28.81,ciudad_capital
+2025-11,servicio completo,diesel,28.08,ciudad_capital
+2025-12,autoservicio,super_aditivada,28.49,ciudad_capital
+2025-12,autoservicio,super,28.00,ciudad_capital
+2025-12,autoservicio,regular,27.00,ciudad_capital
+2025-12,autoservicio,diesel,25.91,ciudad_capital
+2025-12,servicio completo,super_aditivada,29.62,ciudad_capital
+2025-12,servicio completo,super,29.07,ciudad_capital
+2025-12,servicio completo,regular,28.05,ciudad_capital
+2025-12,servicio completo,diesel,26.98,ciudad_capital
+2026-01,autoservicio,super_aditivada,28.06,ciudad_capital
+2026-01,autoservicio,super,27.51,ciudad_capital
+2026-01,autoservicio,regular,26.53,ciudad_capital
+2026-01,autoservicio,diesel,25.12,ciudad_capital
+2026-01,servicio completo,super_aditivada,29.20,ciudad_capital
+2026-01,servicio completo,super,28.59,ciudad_capital
+2026-01,servicio completo,regular,27.57,ciudad_capital
+2026-01,servicio completo,diesel,26.16,ciudad_capital
+2026-02,autoservicio,super_aditivada,29.71,ciudad_capital
+2026-02,autoservicio,super,29.20,ciudad_capital
+2026-02,autoservicio,regular,28.20,ciudad_capital
+2026-02,autoservicio,diesel,27.03,ciudad_capital
+2026-02,servicio completo,super_aditivada,30.86,ciudad_capital
+2026-02,servicio completo,super,30.29,ciudad_capital
+2026-02,servicio completo,regular,29.28,ciudad_capital
+2026-02,servicio completo,diesel,28.10,ciudad_capital
+2026-03,autoservicio,super_aditivada,36.83,ciudad_capital
+2026-03,autoservicio,super,36.36,ciudad_capital
+2026-03,autoservicio,regular,35.35,ciudad_capital
+2026-03,autoservicio,diesel,37.18,ciudad_capital
+2026-03,servicio completo,super_aditivada,37.92,ciudad_capital
+2026-03,servicio completo,super,37.40,ciudad_capital
+2026-03,servicio completo,regular,36.37,ciudad_capital
+2026-03,servicio completo,diesel,38.20,ciudad_capital
+2026-04,autoservicio,super_aditivada,40.24,ciudad_capital
+2026-04,autoservicio,super,39.69,ciudad_capital
+2026-04,autoservicio,regular,38.63,ciudad_capital
+2026-04,autoservicio,diesel,41.44,ciudad_capital
+2026-04,servicio completo,super_aditivada,41.39,ciudad_capital
+2026-04,servicio completo,super,40.77,ciudad_capital
+2026-04,servicio completo,regular,39.69,ciudad_capital
+2026-04,servicio completo,diesel,42.51,ciudad_capital
+2026-05,autoservicio,super_aditivada,38.71,ciudad_capital
+2026-05,autoservicio,super,38.22,ciudad_capital
+2026-05,autoservicio,regular,37.22,ciudad_capital
+2026-05,autoservicio,diesel,34.25,ciudad_capital
+2026-05,servicio completo,super_aditivada,39.69,ciudad_capital
+2026-05,servicio completo,super,39.12,ciudad_capital
+2026-05,servicio completo,regular,38.13,ciudad_capital
+2026-05,servicio completo,diesel,35.15,ciudad_capital
+2026-06,autoservicio,super_aditivada,34.04,ciudad_capital
+2026-06,autoservicio,super,33.50,ciudad_capital
+2026-06,autoservicio,regular,32.50,ciudad_capital
+2026-06,autoservicio,diesel,30.12,ciudad_capital
+2026-06,servicio completo,super_aditivada,35.01,ciudad_capital
+2026-06,servicio completo,super,34.41,ciudad_capital
+2026-06,servicio completo,regular,33.41,ciudad_capital
+2026-06,servicio completo,diesel,31.04,ciudad_capital
+2026-07,autoservicio,super_aditivada,38.99,ciudad_capital
+2026-07,autoservicio,super,38.47,ciudad_capital
+2026-07,autoservicio,regular,37.47,ciudad_capital
+2026-07,autoservicio,diesel,37.59,ciudad_capital
+2026-07,servicio completo,super_aditivada,40.10,ciudad_capital
+2026-07,servicio completo,super,39.49,ciudad_capital
+2026-07,servicio completo,regular,38.49,ciudad_capital
+2026-07,servicio completo,diesel,38.58,ciudad_capital
+2026-08,autoservicio,super_aditivada,40.99,ciudad_capital
+2026-08,autoservicio,super,40.51,ciudad_capital
+2026-08,autoservicio,regular,39.16,ciudad_capital
+2026-08,autoservicio,diesel,44.23,ciudad_capital
+2026-08,servicio completo,super_aditivada,42.16,ciudad_capital
+2026-08,servicio completo,super,41.55,ciudad_capital
+2026-08,servicio completo,regular,40.20,ciudad_capital
+2026-08,servicio completo,diesel,45.28,ciudad_capital
+2026-09,autoservicio,super_aditivada,44.89,ciudad_capital
+2026-09,autoservicio,super,44.41,ciudad_capital
+2026-09,autoservicio,regular,42.34,ciudad_capital
+2026-09,autoservicio,diesel,48.63,ciudad_capital
+2026-09,servicio completo,super_aditivada,46.05,ciudad_capital
+2026-09,servicio completo,super,45.45,ciudad_capital
+2026-09,servicio completo,regular,43.36,ciudad_capital
+2026-09,servicio completo,diesel,49.67,ciudad_capital

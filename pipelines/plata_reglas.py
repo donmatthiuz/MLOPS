@@ -5,9 +5,8 @@ reutilizar desde ``02_silver.py`` en Databricks.
 
 Flujo por foto:
 1. El modelo de visión lee la foto dos veces (a dos resoluciones distintas).
-2. ``conciliar`` acepta un precio solo si ambas lecturas coinciden, o si una
-   coincide con el precio que se deduce del display de la bomba
-   (monto en quetzales ÷ galones despachados).
+2. ``conciliar`` prioriza el display y el consenso; ante lecturas discordantes,
+   usa la referencia mensual como desempate o respaldo identificado.
 3. ``motivo_rechazo`` aplica las reglas de calidad del enunciado.
 """
 from __future__ import annotations
@@ -18,6 +17,7 @@ from datetime import date
 
 CATALOGO = ("super", "regular", "diesel")
 TOLERANCIA_Q = 0.011  # dos lecturas "coinciden" si difieren menos de un centavo
+MAX_DESVIO_REFERENCIA_Q = 3.0  # evita elegir una lectura muy alejada del promedio mensual
 
 # Rango de precio aceptado (Q/galón). En las fotos 2023-2026 se observaron precios
 # entre ~Q25 y ~Q44 (2026 trae alzas confirmadas con el display de la bomba).
@@ -115,11 +115,13 @@ def lecturas_por_combustible(respuesta: dict | None) -> dict[str, float | None]:
     return salida
 
 
-def conciliar(a: float | None, b: float | None, display: float | None) -> tuple[float | None, str]:
+def conciliar(a: float | None, b: float | None, display: float | None,
+             referencia: float | None = None) -> tuple[float | None, str]:
     """Combina dos lecturas independientes del mismo visor.
 
-    Devuelve (precio, metodo). metodo es 'consenso', 'display_bomba' o un motivo
-    de rechazo: 'sin_lectura' o 'lecturas_inconsistentes'.
+    El display y el consenso tienen prioridad. Si hay desacuerdo, elige la
+    lectura más cercana al promedio mensual, siempre que no difiera más de Q3.
+    Si ninguna lectura es confiable, usa el promedio mensual identificado.
     """
     if display is not None:
         for valor in (a, b):
@@ -127,9 +129,41 @@ def conciliar(a: float | None, b: float | None, display: float | None) -> tuple[
                 return display, "display_bomba"
     if a is not None and b is not None and abs(a - b) < TOLERANCIA_Q:
         return a, "consenso"
+    if referencia is not None:
+        candidatos = [v for v in (a, b) if v is not None and abs(v - referencia) <= MAX_DESVIO_REFERENCIA_Q]
+        if candidatos:
+            distancias = [(abs(v - referencia), v) for v in candidatos]
+            distancias.sort()
+            if len(distancias) == 1 or distancias[0][0] < distancias[1][0]:
+                return distancias[0][1], "referencia_desempate"
+        return referencia, "referencia_mensual"
     if a is None and b is None:
         return None, "sin_lectura"
     return None, "lecturas_inconsistentes"
+
+
+def ajustar_orden_con_referencia(finales: dict[str, tuple[float, str]],
+                                referencias: dict[str, float | None]) -> dict[str, tuple[float, str]] | None:
+    """Sustituye por referencia el precio que rompe súper >= regular.
+
+    Conserva una lectura cercana a la referencia si la otra es un claro valor
+    atípico. Si ambas siguen invertidas, usa ambas referencias. Sin referencias
+    suficientes, deja el rechazo habitual de las dos lecturas.
+    """
+    if not orden_incoherente({c: v[0] for c, v in finales.items()}):
+        return finales
+    if any(referencias.get(c) is None for c in ("super", "regular")):
+        return None
+    ajustadas = dict(finales)
+    for comb in ("super", "regular"):
+        precio, _ = finales[comb]
+        ref = referencias[comb]
+        if abs(precio - ref) > MAX_DESVIO_REFERENCIA_Q:
+            ajustadas[comb] = (ref, "referencia_mensual_orden")
+    if orden_incoherente({c: v[0] for c, v in ajustadas.items()}):
+        for comb in ("super", "regular"):
+            ajustadas[comb] = (referencias[comb], "referencia_mensual_orden")
+    return ajustadas
 
 
 def anio_de_ruta(ruta: str) -> int | None:
