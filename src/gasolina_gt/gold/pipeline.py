@@ -36,7 +36,8 @@ def _metricas(r: ResultadoModelo, por_combustible: pd.DataFrame) -> dict:
             "n_ejemplos": r.n_ejemplos, "n_train": r.n_train, "n_test": r.n_test,
             "n_validacion_cv": r.n_validacion_cv}
     for fila in por_combustible.itertuples():
-        prefijo = f"rolling_{fila.modelo}_{fila.combustible}"
+        sufijo = "asistido_" if fila.criterio == "asistido" else ""
+        prefijo = f"rolling_{sufijo}{fila.modelo}_{fila.combustible}"
         salida[f"{prefijo}_n"] = fila.n_test
         if fila.n_test:
             salida[f"{prefijo}_accuracy"] = fila.accuracy
@@ -58,6 +59,7 @@ def _parametros(params: GoldParams, r: ResultadoModelo, usa_wti: bool,
 def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params: GoldParams, *,
                  silver_modelo: Optional[pd.DataFrame] = None,
                  silver_evaluacion: Optional[pd.DataFrame] = None,
+                 silver_evaluacion_asistida: Optional[pd.DataFrame] = None,
                  previas: Optional[pd.DataFrame] = None,
                  generado_en=None, tracker: Optional[Tracker] = None,
                  log: Callable[[str], None] = print) -> GoldResult:
@@ -94,9 +96,16 @@ def compute_gold(silver: pd.DataFrame, wti_crudo: Optional[pd.DataFrame], params
     r = entrenar_y_evaluar(features, params, features_evaluacion)
     log(f"Oro: {r.motivo}")
     rolling = backtest_por_combustible(features, features_evaluacion if features_evaluacion is not None else features,
-                                      params)
+                                      params).assign(criterio="independiente" if features_evaluacion is not None else "sin_filtro")
+    if silver_evaluacion_asistida is not None:
+        semanal_asistida = precio_semanal(preferir_observados(silver_evaluacion_asistida))
+        variacion_asistida = variacion_semanal(semanal_asistida, params.umbral_q)
+        features_asistidas = construir_features(variacion_asistida, wti)
+        asistida = backtest_por_combustible(features, features_asistidas, params).assign(criterio="asistido")
+        rolling = pd.concat([rolling, asistida], ignore_index=True)
     log("Oro: backtest temporal observado por combustible: " + ", ".join(
-        f"{fila.combustible}={fila.n_test}" for fila in rolling.itertuples() if fila.modelo == "linea_base"))
+        f"{fila.criterio}/{fila.combustible}={fila.n_test}"
+        for fila in rolling.itertuples() if fila.modelo == "linea_base"))
 
     reales = variacion_reales.loc[variacion_reales["direccion"].notna(),
                                  ["semana", "combustible", "direccion"]]

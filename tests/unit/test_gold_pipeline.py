@@ -95,6 +95,26 @@ def test_referencias_entran_al_entrenamiento_pero_prueba_usa_lecturas_observadas
     assert res.resultado.semana_train[1] + pd.Timedelta(days=7) < res.resultado.semana_test[0]
 
 
+def test_backtest_asistido_se_informa_aparte_y_usa_mas_triples() -> None:
+    silver = serie_alternante(30)
+    silver["metodo_validacion"] = "consenso"
+    silver.loc[pd.to_datetime(silver["fecha"]).between(martes(5), martes(13)),
+               "metodo_validacion"] = "referencia_desempate"
+    silver.loc[pd.to_datetime(silver["fecha"]).between(martes(20), martes(21)),
+               "metodo_validacion"] = "referencia_mensual"
+    strict = silver.loc[~silver["metodo_validacion"].str.startswith("referencia_"),
+                        ["fecha", "combustible", "precio_q_galon"]]
+    assisted = silver.loc[~silver["metodo_validacion"].str.startswith("referencia_mensual"),
+                          ["fecha", "combustible", "precio_q_galon", "metodo_validacion"]]
+
+    res = compute_gold(silver, None, GoldParams(), silver_evaluacion=strict,
+                       silver_evaluacion_asistida=assisted, generado_en=T0, log=lambda *_: None)
+    tabla = res.metricas_combustible
+    assert set(tabla["criterio"]) == {"independiente", "asistido"}
+    base = tabla[tabla["modelo"] == "linea_base"].pivot(index="combustible", columns="criterio", values="n_test")
+    assert (base["asistido"] > base["independiente"]).all()
+
+
 def test_sin_lecturas_observadas_no_registra_metricas_de_referencia_como_desempeno() -> None:
     silver = precios_silver({"super": {0: 20, 1: 21, 2: 22, 3: 23}})
     silver["metodo_validacion"] = "referencia_mensual"

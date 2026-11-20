@@ -40,7 +40,7 @@ ESQUEMAS: dict[str, list[tuple[str, str]]] = {
         ("umbral_q", "DOUBLE"), ("semanas_test", "INT"), ("usa_wti", "BOOLEAN"), ("_generado_en", "TIMESTAMP"),
     ],
     "metricas_combustible": [
-        ("combustible", "STRING"), ("modelo", "STRING"), ("n_test", "INT"),
+        ("criterio", "STRING"), ("combustible", "STRING"), ("modelo", "STRING"), ("n_test", "INT"),
         ("accuracy", "DOUBLE"), ("f1_macro", "DOUBLE"),
         ("semana_inicio", "DATE"), ("semana_fin", "DATE"), ("_generado_en", "TIMESTAMP"),
     ],

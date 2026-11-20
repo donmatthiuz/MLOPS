@@ -197,6 +197,10 @@ def gold(cfg: dict, params=None) -> None:
     metodos = silver["metodo_validacion"].fillna("")
     prices_evaluacion = silver.loc[~metodos.str.startswith("referencia_"),
                                    ["fecha", "combustible", "precio_q_galon"]]
+    # El desempate conserva un número leído en la foto, pero fue elegido con
+    # ayuda del promedio mensual. Se informa como evaluación asistida aparte.
+    prices_evaluacion_asistida = silver.loc[~metodos.str.startswith("referencia_mensual"),
+                                            ["fecha", "combustible", "precio_q_galon", "metodo_validacion"]]
     wti = _read_wti(spark, cfg) if params.usar_wti else None
     predictions_path = _path(cfg, "gold", "predicciones")
     previous = (spark.read.format("delta").load(predictions_path).toPandas()
@@ -206,6 +210,7 @@ def gold(cfg: dict, params=None) -> None:
                       reports_dir=resolve_path(reports) if reports else None)
 
     result = compute_gold(prices, wti, params, silver_evaluacion=prices_evaluacion,
+                          silver_evaluacion_asistida=prices_evaluacion_asistida,
                           previas=previous, tracker=tracker)
     if result.metricas_modelo.iloc[0].run_id_mlflow is None:
         raise RuntimeError("Oro: MLflow no registró la ejecución; revise el experimento y las dependencias del Job")

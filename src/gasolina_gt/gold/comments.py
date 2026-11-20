@@ -7,7 +7,7 @@ COMENTARIOS_TABLA: dict[str, str] = {
     "features_modelo": "Variables para predecir la dirección de la semana siguiente, una fila por semana y combustible. La última semana no tiene objetivo porque es la que se predice.",
     "predicciones": "Predicción de la dirección del precio por semana y combustible. tipo=pronostico es la predicción hacia adelante; tipo=backtest es la predicción sobre semanas de prueba que ya ocurrieron.",
     "metricas_modelo": "Una fila por ejecución de Oro con las métricas del modelo y de la línea base «se repite la dirección de la semana anterior», medidas en semanas que el modelo no usó para entrenar.",
-    "metricas_combustible": "Backtest temporal por combustible con modelos fijos; cada predicción usa solo etiquetas de semanas anteriores y cada modelo se evalúa en los mismos casos observados.",
+    "metricas_combustible": "Backtest temporal por combustible con modelos fijos. Se informan por separado lecturas independientes y lecturas asistidas por desempate; nunca se evalúa con precios mensuales sustituidos.",
 }
 
 _BASE = {
@@ -89,6 +89,7 @@ COLUMNAS: dict[str, dict[str, str]] = {
         "_generado_en": _BASE["_generado_en"],
     },
     "metricas_combustible": {
+        "criterio": "independiente: consenso, enfoque o display de la foto; asistido: añade valores de la foto seleccionados por referencia_desempate; sin_filtro: uso local sin distinción de métodos.",
         "combustible": _BASE["combustible"],
         "modelo": "Modelo evaluado: linea_base, regresion_logistica o arbol_decision con parámetros fijos.",
         "n_test": "Cantidad de triples observados evaluados con entrenamiento anterior suficiente; cero significa que no se pudo medir.",
