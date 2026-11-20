@@ -4,8 +4,9 @@
 # MAGIC
 # MAGIC Convierte cada foto de Bronce en filas limpias de precio (una por fecha, ubicación, combustible y modalidad).
 # MAGIC
-# MAGIC 1. **Extracción**: un modelo de visión servido en Databricks lee cada foto **dos veces** (dos resoluciones).
-# MAGIC 2. **Conciliación**: un precio se acepta si ambas lecturas coinciden, o si una coincide con el precio que se deduce
+# MAGIC 1. **Extracción**: un modelo de visión servido en Databricks lee cada foto dos veces; si hace falta,
+# MAGIC    añade dos lecturas enfocadas con recortes de los visores.
+# MAGIC 2. **Conciliación**: un precio se acepta si dos lecturas coinciden, o si una coincide con el precio que se deduce
 # MAGIC    del display de la bomba (monto ÷ galones).
 # MAGIC    Si no se puede conciliar, se usa el promedio mensual del MEM para Ciudad Capital como desempate o respaldo,
 # MAGIC    dejando el método registrado en `metodo_validacion`. Se supone que todas las fotos son de Ciudad Capital.
@@ -19,6 +20,7 @@
 # MAGIC - `reaplicar_reglas`: **no llama al modelo**; vuelve a aplicar las reglas a las respuestas guardadas en `extracciones`
 # MAGIC   y reemplaza `precios` y `precios_rejected`. Útil cuando cambia una regla.
 # MAGIC - `reprocesar_todo`: vuelve a enviar todas las fotos al modelo y reemplaza las tres tablas (~20 min para 110 fotos).
+# MAGIC - `refinar_referencias`: relee con recortes solo fotos que usan referencia y reconstruye Plata desde las extracciones.
 # MAGIC
 # MAGIC Las tablas Delta viven en S3 (`<silver_uri>/<tabla>`) y se copian a tablas administradas
 # MAGIC `workspace.equipo7.silver_<tabla>` para consultarlas en Catalog Explorer.
@@ -52,7 +54,7 @@ dbutils.widgets.text("origen", "",
 dbutils.widgets.text("silver_uri", "", "Prefijo S3 de Plata")
 dbutils.widgets.text("catalogo", "workspace", "Catálogo")
 dbutils.widgets.text("esquema", "equipo7", "Esquema")
-dbutils.widgets.dropdown("modo", "incremental", ["incremental", "reaplicar_reglas", "reprocesar_todo"], "Modo")
+dbutils.widgets.dropdown("modo", "incremental", ["incremental", "reaplicar_reglas", "reprocesar_todo", "refinar_referencias"], "Modo")
 dbutils.widgets.text("modelo", "databricks-llama-4-maverick", "Endpoint del modelo de visión")
 dbutils.widgets.text("lado_a", "1600", "Resolución lectura A (px)")
 dbutils.widgets.text("lado_b", "2560", "Resolución lectura B (px)")
@@ -89,10 +91,11 @@ try:
     for _d in (os.getcwd(), str(ruta_notebook.parent)):
         if _d not in sys.path:
             sys.path.insert(0, _d)
-    from plata_reglas import (ajustar_orden_con_referencia, anio_de_ruta, conciliar, lecturas_por_combustible,
+    from plata_reglas import (ajustar_orden_con_referencia, anio_de_ruta, conciliar_con_enfoque, lecturas_por_combustible,
                               motivo_rechazo, normalizar_modalidad, normalizar_ubicacion, orden_incoherente,
                               parsear_respuesta, precio_desde_display)
     from plata_referencia import buscar_referencia, cargar_referencias
+    from plata_vision import vistas_enfoque
 except ImportError as exc:
     raise ImportError("No se encontraron plata_reglas.py y plata_referencia.py junto a este notebook (Git folder).") from exc
 
@@ -139,6 +142,8 @@ ESQUEMAS = {
         T.StructField("fuente_fecha", T.StringType()),
         T.StructField("respuesta_a", T.StringType(), metadata={"comment": "Respuesta cruda del modelo, lectura A"}),
         T.StructField("respuesta_b", T.StringType(), metadata={"comment": "Respuesta cruda del modelo, lectura B"}),
+        T.StructField("respuesta_enfoque_a", T.StringType(), metadata={"comment": "Lectura enfocada de visores, recortes originales"}),
+        T.StructField("respuesta_enfoque_b", T.StringType(), metadata={"comment": "Lectura enfocada de visores, recortes con contraste"}),
         T.StructField("precio_display", T.DoubleType(), metadata={"comment": "monto/galones del display de la bomba"}),
         T.StructField("_processed_timestamp", T.TimestampType()),
     ]),
@@ -159,7 +164,8 @@ pmin, pmax = float(P["precio_min"]), float(P["precio_max"])
 ahora = datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def evaluar(foto: str, fecha: date | None, texto_a: str | None, texto_b: str | None):
+def evaluar(foto: str, fecha: date | None, texto_a: str | None, texto_b: str | None,
+            texto_foco_a: str | None = None, texto_foco_b: str | None = None):
     """Aplica conciliación y reglas a las dos respuestas del modelo para una foto.
 
     Devuelve (aceptadas, rechazadas, precio_display). No llama al modelo: se usa tanto con respuestas nuevas como con
@@ -180,15 +186,18 @@ def evaluar(foto: str, fecha: date | None, texto_a: str | None, texto_b: str | N
         modalidad = normalizar_modalidad((resp_a or {}).get("modalidad"))
 
     lect_a, lect_b = lecturas_por_combustible(resp_a), lecturas_por_combustible(resp_b)
-    if not lect_a and not lect_b:
+    lect_fa = lecturas_por_combustible(parsear_respuesta(texto_foco_a))
+    lect_fb = lecturas_por_combustible(parsear_respuesta(texto_foco_b))
+    if not (lect_a or lect_b or lect_fa or lect_fb):
         return [], [(foto, None, None, "foto_sin_precios", ahora)], p_display
 
     aceptadas, rechazadas, finales = [], [], {}
     ref_valores = {}
-    for comb in sorted(set(lect_a) | set(lect_b)):
+    for comb in sorted(set(lect_a) | set(lect_b) | set(lect_fa) | set(lect_fb)):
         ref, supuesto_auto = buscar_referencia(referencias, fecha, modalidad, comb)
         ref_valores[comb] = ref
-        precio, metodo = conciliar(lect_a.get(comb), lect_b.get(comb), p_display, ref)
+        precio, metodo = conciliar_con_enfoque(lect_a.get(comb), lect_b.get(comb),
+                                              lect_fa.get(comb), lect_fb.get(comb), p_display, ref)
         if supuesto_auto and metodo.startswith("referencia_"):
             metodo += "_autoservicio_supuesto"
         motivo = (motivo_rechazo(fecha, comb, precio, hoy, pmin, pmax, anio_de_ruta(foto))
@@ -230,7 +239,30 @@ def leer_origen():
     return df.filter(F.lower(F.regexp_extract("path", r"\.([^.]+)$", 1)).isin("heic", "jpg", "jpeg", "png"))
 
 pendientes = []
-if P["modo"] != "reaplicar_reglas":
+anteriores = {}
+n_referencia_anterior = None
+if P["modo"] == "refinar_referencias":
+    if not all(DeltaTable.isDeltaTable(spark, RUTA[n]) for n in ("precios", "extracciones")):
+        raise RuntimeError("Primero ejecute Plata y guarde precios y extracciones")
+    anteriores = {e.foto_origen: e for e in spark.read.format("delta").load(RUTA["extracciones"]).collect()}
+    precios_previos = spark.read.format("delta").load(RUTA["precios"])
+    n_referencia_anterior = precios_previos.filter(F.col("metodo_validacion").startswith("referencia_")).count()
+    rutas_ref = (precios_previos
+                 .filter(F.col("metodo_validacion").startswith("referencia_"))
+                 .select(F.col("foto_origen").alias("path")))
+    if DeltaTable.isDeltaTable(spark, RUTA["precios_rejected"]):
+        pendientes_lectura = (spark.read.format("delta").load(RUTA["precios_rejected"])
+                              .filter(F.col("motivo").isin("lecturas_inconsistentes", "sin_lectura",
+                                                            "foto_sin_precios", "super_menor_que_regular"))
+                              .select(F.col("foto_origen").alias("path")))
+        rutas_ref = rutas_ref.union(pendientes_lectura)
+    rutas_ref = rutas_ref.distinct()
+    fotos = leer_origen().join(rutas_ref, "path", "inner").orderBy("path")
+    if int(P["limite_fotos"]) > 0:
+        fotos = fotos.limit(int(P["limite_fotos"]))
+    pendientes = fotos.select("path", "content").collect()
+    print(f"Fotos con referencia o lectura fallida por refinar: {rutas_ref.count()} · disponibles: {len(pendientes)}")
+elif P["modo"] != "reaplicar_reglas":
     fotos = leer_origen()
     total_origen = fotos.count()
     if P["modo"] == "incremental" and DeltaTable.isDeltaTable(spark, RUTA["extracciones"]):
@@ -251,7 +283,8 @@ if P["modo"] == "reaplicar_reglas":
         raise RuntimeError("No hay extracciones guardadas: ejecute primero en modo incremental")
     guardadas = spark.read.format("delta").load(RUTA["extracciones"]).collect()
     for e in guardadas:
-        a, r, _ = evaluar(e.foto_origen, e.fecha, e.respuesta_a, e.respuesta_b)
+        a, r, _ = evaluar(e.foto_origen, e.fecha, e.respuesta_a, e.respuesta_b,
+                          e.asDict().get("respuesta_enfoque_a"), e.asDict().get("respuesta_enfoque_b"))
         aceptadas += a
         rechazadas += r
     # Conservar los errores de extracción de fotos que nunca llegaron a `extracciones` (se reintentan en incremental).
@@ -263,7 +296,7 @@ if P["modo"] == "reaplicar_reglas":
     print(f"Reglas reaplicadas a {len(guardadas)} fotos guardadas (sin llamar al modelo)")
 else:
     import pillow_heif
-    from PIL import Image
+    from PIL import Image, ImageOps
     from databricks.sdk import WorkspaceClient
 
     pillow_heif.register_heif_opener()
@@ -277,6 +310,13 @@ fácilmente 1 con 7 y 2 con 3: revisa cada segmento. Devuelve SOLO JSON con esta
  "display_bomba": {"monto_q": number|null, "galones": number|null}}
 display_bomba es el total de la venta en curso (quetzales y galones) si la foto lo muestra.
 Si un dígito no se distingue, usa null. No inventes valores."""
+    PROMPT_ENFOQUE = """La primera imagen muestra la bomba completa. Las cuatro siguientes son recortes verticales
+solapados de izquierda a derecha; algunos repiten el mismo visor. Lee SOLO precios por galón visibles en los visores
+y asocia cada número con el nombre de combustible impreso directamente debajo. No uses conocimiento de precios
+de mercado ni infieras un dígito borroso. Responde SOLO JSON con la misma estructura de la lectura original:
+{"estacion": str|null, "ubicacion": str|null, "modalidad": "autoservicio"|"servicio completo"|null,
+ "precios": [{"nombre_en_rotulo": str, "combustible": "super"|"regular"|"diesel"|"otro", "precio_q_galon": number|null}],
+ "display_bomba": {"monto_q": null, "galones": null}}"""
 
     def fecha_foto(img) -> tuple[date | None, str]:
         """Fecha de captura (EXIF). modificationTime NO sirve: es cuando se subió el archivo a S3."""
@@ -304,21 +344,75 @@ Si un dígito no se distingue, usa null. No inventes valores."""
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}])
         return r.choices[0].message.content
 
+    def preguntar_enfoque(img, contraste: bool) -> str:
+        contenido = [{"type": "text", "text": PROMPT_ENFOQUE}]
+        for vista in vistas_enfoque(img, contraste=contraste):
+            contenido.append({"type": "image_url", "image_url": {
+                "url": f"data:image/jpeg;base64,{a_jpeg_b64(vista, 1600)}"}})
+        r = cliente.chat.completions.create(
+            model=P["modelo"], temperature=0, max_tokens=700,
+            messages=[{"role": "user", "content": contenido}])
+        return r.choices[0].message.content
+
+    def intentar_enfoque(img, contraste: bool, foto: str) -> str | None:
+        try:
+            return preguntar_enfoque(img, contraste)
+        except Exception as exc:
+            print(f"Lectura enfocada falló para {foto} (contraste={contraste}): {str(exc)[:160]}")
+            return None
+
     for i, fila in enumerate(pendientes, 1):
         try:
             img = Image.open(io.BytesIO(bytes(fila.content)))
-            fecha, fuente_fecha = fecha_foto(img)
-            img = img.convert("RGB")
-            texto_a = preguntar(a_jpeg_b64(img, int(P["lado_a"])))
-            texto_b = preguntar(a_jpeg_b64(img, int(P["lado_b"])))
+            if P["modo"] == "refinar_referencias":
+                e = anteriores[fila.path]
+                fecha, fuente_fecha = e.fecha, e.fuente_fecha
+                texto_a, texto_b = e.respuesta_a, e.respuesta_b
+            else:
+                fecha, fuente_fecha = fecha_foto(img)
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            if P["modo"] != "refinar_referencias":
+                texto_a = preguntar(a_jpeg_b64(img, int(P["lado_a"])))
+                texto_b = preguntar(a_jpeg_b64(img, int(P["lado_b"])))
+            a0, r0, _ = evaluar(fila.path, fecha, texto_a, texto_b)
+            necesita_enfoque = (P["modo"] == "refinar_referencias" or
+                                any(row[6].startswith("referencia_") for row in a0) or
+                                any(row[3] in ("lecturas_inconsistentes", "sin_lectura",
+                                               "foto_sin_precios", "super_menor_que_regular") for row in r0))
+            texto_fa = intentar_enfoque(img, False, fila.path) if necesita_enfoque else None
+            texto_fb = intentar_enfoque(img, True, fila.path) if necesita_enfoque else None
         except Exception as exc:  # foto corrupta o endpoint caído: queda registrada y se reintenta en la próxima corrida
             rechazadas.append((fila.path, None, None, f"error_extraccion: {str(exc)[:200]}", ahora))
             continue
-        a, r, p_display = evaluar(fila.path, fecha, texto_a, texto_b)
+        a, r, p_display = evaluar(fila.path, fecha, texto_a, texto_b, texto_fa, texto_fb)
+        if P["modo"] != "refinar_referencias":
+            aceptadas += a
+            rechazadas += r
+        extracciones.append((fila.path, fecha, fuente_fecha, texto_a, texto_b,
+                             texto_fa, texto_fb, p_display, ahora))
+        print(f"[{i}/{len(pendientes)}] {fila.path.split('/')[-1]}: {len(a)} aceptadas")
+
+if P["modo"] == "refinar_referencias":
+    actualizadas = {e[0]: e for e in extracciones}
+    extracciones = []
+    aceptadas, rechazadas = [], []
+    for foto, e in anteriores.items():
+        fila = actualizadas.get(foto)
+        if fila is None:
+            d = e.asDict()
+            fila = (foto, e.fecha, e.fuente_fecha, e.respuesta_a, e.respuesta_b,
+                    d.get("respuesta_enfoque_a"), d.get("respuesta_enfoque_b"), e.precio_display,
+                    d["_processed_timestamp"])
+        extracciones.append(fila)
+        a, r, _ = evaluar(foto, fila[1], fila[3], fila[4], fila[5], fila[6])
         aceptadas += a
         rechazadas += r
-        extracciones.append((fila.path, fecha, fuente_fecha, texto_a, texto_b, p_display, ahora))
-        print(f"[{i}/{len(pendientes)}] {fila.path.split('/')[-1]}: {len(a)} aceptadas")
+    if DeltaTable.isDeltaTable(spark, RUTA["precios_rejected"]):
+        rechazadas += [tuple(x) for x in spark.read.format("delta").load(RUTA["precios_rejected"])
+                       .filter(F.col("motivo").startswith("error_extraccion")).collect()
+                       if x.foto_origen not in anteriores]
+    n_referencia_calculada = sum(row[6].startswith("referencia_") for row in aceptadas)
+    print(f"Lecturas con referencia: antes={n_referencia_anterior} · recalculadas={n_referencia_calculada}")
 
 # COMMAND ----------
 
@@ -327,6 +421,12 @@ def guardar(nombre: str, filas: list, reemplazar: bool) -> None:
     if reemplazar or not DeltaTable.isDeltaTable(spark, RUTA[nombre]):
         df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(RUTA[nombre])
     else:
+        if nombre == "extracciones":
+            columnas = set(spark.read.format("delta").load(RUTA[nombre]).columns)
+            faltantes = [c for c in ("respuesta_enfoque_a", "respuesta_enfoque_b") if c not in columnas]
+            if faltantes:
+                definiciones = ", ".join(f"{c} STRING" for c in faltantes)
+                spark.sql(f"ALTER TABLE delta.`{RUTA[nombre]}` ADD COLUMNS ({definiciones})")
         DeltaTable.forPath(spark, RUTA[nombre]).alias("t").merge(df.alias("s"), CONDICION[nombre]) \
             .whenNotMatchedInsertAll().execute()
 
@@ -343,9 +443,13 @@ if P["escribir"] == "si":
     reemplazar = P["modo"] != "incremental"
     if reemplazar and not aceptadas:
         raise RuntimeError("La corrida no produjo precios válidos; no se reemplazaron las tablas de Plata")
+    if P["modo"] == "refinar_referencias":
+        # Guardar primero la evidencia enfocada: si falla una escritura posterior,
+        # reaplicar_reglas puede reconstruir los precios sin nuevas llamadas.
+        guardar("extracciones", extracciones, True)
     guardar("precios", aceptadas, reemplazar)
     guardar("precios_rejected", rechazadas, reemplazar)
-    if P["modo"] != "reaplicar_reglas":
+    if P["modo"] not in ("reaplicar_reglas", "refinar_referencias"):
         # extracciones va al final: si algo falla antes, las fotos se vuelven a procesar en la siguiente corrida.
         guardar("extracciones", extracciones, P["modo"] == "reprocesar_todo")
     for nombre in NOMBRES:
@@ -386,6 +490,9 @@ if P["escribir"] == "si":
     display(leer("precios_rejected").withColumn("motivo", F.split("motivo", ":")[0])
             .groupBy("motivo").count().orderBy(F.desc("count")))
     display(leer("precios").groupBy("metodo_validacion").count())
+    if n_referencia_anterior is not None:
+        n_referencia_nueva = leer("precios").filter(F.col("metodo_validacion").startswith("referencia_")).count()
+        print(f"Lecturas con referencia: antes={n_referencia_anterior} · ahora={n_referencia_nueva}")
     display(leer("precios").groupBy(F.year("fecha").alias("anio"), "combustible")
             .agg(F.count("*").alias("n"), F.min("precio_q_galon").alias("min"), F.max("precio_q_galon").alias("max"))
             .orderBy("anio", "combustible"))

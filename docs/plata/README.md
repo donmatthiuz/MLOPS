@@ -37,6 +37,9 @@ administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se conf
   - `reaplicar_reglas`: no llama al modelo; vuelve a aplicar las reglas a `extracciones` y reemplaza `precios` y
     `precios_rejected` (~1 min). Usar cuando cambia una regla.
   - `reprocesar_todo`: vuelve a enviar todas las fotos al modelo (~20 min para 110 fotos).
+  - `refinar_referencias`: envía solo fotos con métodos `referencia_` o lecturas fallidas a dos lecturas enfocadas,
+    conserva las respuestas originales y reconstruye Plata. Puede probarse con `limite_fotos=5`, `escribir=no`;
+    para aplicar a todas las fotos pendientes use `limite_fotos=0`, `escribir=si`.
 - Después de cambiar Plata hay que volver a ejecutar Oro.
 - Para aplicar esta regla a las extracciones existentes, actualice el Git folder en Databricks y ejecute con
   `modo=reaplicar_reglas`, `usar_referencia=si`, `referencia_csv` vacío y los parámetros habituales `origen` y
@@ -45,6 +48,11 @@ administradas de `workspace.equipo7` (Oro usa el prefijo S3 completo que se conf
 ## Cómo se extrae el precio
 
 **Por qué un modelo de visión y no Tesseract:** el cómputo del workspace es solo serverless (no permite instalar el binario de Tesseract), y el OCR de 7 segmentos que ya existía usa recortes calibrados a mano para un solo dispensador Shell, así que no sirve para las fotos del catedrático (Puma, Shell, otras bombas). El enunciado permite "OCR o un modelo de visión".
+
+Cuando las dos lecturas completas necesitan referencia o quedan inconsistentes, el notebook envía la foto completa
+y cuatro recortes verticales que conservan los visores y sus rótulos. Una segunda lectura usa contraste automático.
+Solo dos lecturas coincidentes (originales o enfocadas) sustituyen el respaldo; los desacuerdos conservan la regla
+mensual. Ambas respuestas enfocadas se guardan en `extracciones` para `reaplicar_reglas` sin nuevas llamadas.
 
 Se probaron los modelos con entrada de imagen disponibles en el workspace:
 

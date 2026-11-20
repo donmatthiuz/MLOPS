@@ -10,6 +10,7 @@ from plata_reglas import (  # noqa: E402
     ajustar_orden_con_referencia,
     anio_de_ruta,
     conciliar,
+    conciliar_con_enfoque,
     lecturas_por_combustible,
     motivo_rechazo,
     normalizar_combustible,
@@ -52,6 +53,13 @@ def test_referencia_desempata_lecturas_y_respalda_precio_ilegible() -> None:
     assert conciliar(21, 21, None, 27) == (21, "consenso")
     assert conciliar(16, 29, None, 22) == (22, "referencia_mensual")
     assert conciliar(21, 23, None, 22) == (22, "referencia_mensual")  # empate: no inventar desempate
+
+
+def test_recortes_resuelven_conflicto_sin_usar_referencia() -> None:
+    assert conciliar_con_enfoque(21, 27, 21, 21, None, 22) == (21, "consenso_enfoque")
+    assert conciliar_con_enfoque(None, None, 31.5, 31.5, None, 30) == (31.5, "consenso_enfoque")
+    assert conciliar_con_enfoque(21, 27, 21, 27, None, 22) == (21, "referencia_desempate")
+    assert conciliar_con_enfoque(None, None, None, None, None, 30) == (30, "referencia_mensual")
 
 
 def test_referencia_resuelve_orden_invertido_con_procedencia() -> None:

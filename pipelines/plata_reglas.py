@@ -142,6 +142,31 @@ def conciliar(a: float | None, b: float | None, display: float | None,
     return None, "lecturas_inconsistentes"
 
 
+def conciliar_con_enfoque(a: float | None, b: float | None, foco_a: float | None,
+                         foco_b: float | None, display: float | None,
+                         referencia: float | None = None) -> tuple[float | None, str]:
+    """Usa votos coincidentes de recortes antes de acudir al promedio mensual.
+
+    Un empate entre dos precios distintos no se resuelve por mayoría artificial.
+    """
+    precio, metodo = conciliar(a, b, display, None)
+    if precio is not None:
+        return precio, metodo
+    lecturas = [(v, origen) for v, origen in ((a, "original"), (b, "original"),
+                                                (foco_a, "enfoque"), (foco_b, "enfoque")) if v is not None]
+    grupos = []
+    for valor, _ in lecturas:
+        votos = [(v, origen) for v, origen in lecturas if abs(v - valor) < TOLERANCIA_Q]
+        if len(votos) >= 2 and any(origen == "enfoque" for _, origen in votos):
+            grupos.append((len(votos), valor))
+    if grupos:
+        max_votos = max(n for n, _ in grupos)
+        ganadores = {round(v, 2) for n, v in grupos if n == max_votos}
+        if len(ganadores) == 1:
+            return ganadores.pop(), "consenso_enfoque"
+    return conciliar(a, b, display, referencia)
+
+
 def ajustar_orden_con_referencia(finales: dict[str, tuple[float, str]],
                                 referencias: dict[str, float | None]) -> dict[str, tuple[float, str]] | None:
     """Sustituye por referencia el precio que rompe súper >= regular.
